@@ -52,7 +52,7 @@ A leading HTML comment in any file is a note to the mind. `template/AGENTS.md` i
 | `apprenticer init <dir>` | start a space: a stub brief, `notes/memory.md`, `visuals/`, `sources/`, a `.gitignore`, and `AGENTS.md` for your coding agent |
 | `apprenticer check <dir>` | static checks, no key needed: a brief, a title sentence on every visual and note, a `data-cue` on every step after the first, sources under the cap. Exit code 1 on a problem |
 | `apprenticer notes <dir> [session]` | save the notes for a session whose notes update failed |
-| `apprenticer sim <dir> --user persona.md` | rehearse the space in text, no voice: the mind against a simulated user described in `persona.md`, then a judge scores the mind 1-5 on following the brief, adapting to the user, turns for a voice, board use, pushback and leaving, honesty and (in a later run) memory. `--turns 10`, `--out file.json`, `--draw` (really draw `draw` lines), `--tier ultrafast` for real-session latencies. The notes pass writes its result only into the run's own `sessions/<ts>/notes-after/`, so a rehearsal never touches your real memory; `--notes` applies it to `notes/` (so a second run tests memory), `--no-notes` skips the pass |
+| `apprenticer sim <dir> --user persona.md` | rehearse the space in text, no voice: the mind (same turn function and instructions as a real session; the pauses and going-on after silence aren't rehearsed) against a simulated user described in `persona.md`, then a judge scores the mind 1-5 on following the brief, adapting to the user, turns for a voice, board use, pushback and leaving, honesty and (in a later run) memory. `--turns 10`, `--out file.json`, `--draw` (really draw `draw` lines), `--tier ultrafast` for real-session latencies. The notes pass writes its result only into the run's own `sessions/<ts>/notes-after/`, so a rehearsal never touches your real memory; `--notes` applies it to `notes/` (so a second run tests memory), `--no-notes` skips the pass |
 
 ## Environment
 
@@ -73,7 +73,7 @@ The cost on the page and the cap count voice minutes and web searches. The mind'
 
 - Localhost only, no login: the server binds to 127.0.0.1 and refuses any other `Host`. Everything in a space is sent to OpenAI.
 - One session at a time. The next can't start until the last one's notes are saved (a minute or so), so it never begins from stale notes.
-- Voice only, no typing. The mind speaks first. After a point that isn't a question, it carries on if you stay quiet; after a question it waits. Sessions end at GPT-Live's two-hour limit (a warning at 105 minutes).
+- Voice only, no typing. The mind speaks first. After a point that isn't a question, it carries on if you stay quiet (up to four turns in a row, so walking away doesn't run up a bill); after a question it waits. Sessions end at GPT-Live's two-hour limit (a warning at 105 minutes).
 - Node runs the TypeScript directly, no build. Node won't run TypeScript from inside `node_modules`, so install from a clone (`npm link`); publishing to the npm registry needs a compile step first.
 
 ```bash

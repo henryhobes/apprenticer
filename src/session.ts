@@ -5,7 +5,7 @@ import type { LiveCreateParams } from 'openai/resources/live/live';
 import WebSocket from 'ws';
 import * as board from './board.ts';
 import { LIVE_USD_PER_MINUTE, WEB_SEARCH_USD, config, openai } from './config.ts';
-import { type Turn, localDate, mindTurn, notesPass } from './mind.ts';
+import { type Turn, localDate, mindTurn, notesPass, renderTurns } from './mind.ts';
 import { type Meta, type Space, newSessionDir, openSpace, readMeta, readSpace, writeMeta, writeNotes } from './space.ts';
 
 // The mind (a strong text model run by this server) decides everything said in a session; GPT-Live is
@@ -85,7 +85,7 @@ const did: Record<board.BoardCommand['verb'], string> = { show: 'showed', draw: 
 export const boardLines = (commands: board.BoardCommand[], turn: string) => commands.filter(c => did[c.verb])
   .map(c => `- ${did[c.verb]}: ${c.arg} (with the turn that begins "${turn.split(/\s+/).slice(0, 8).join(' ')}…")`);
 /** The session as text: what was said, then what was on the board. */
-export const transcriptOf = (turns: Turn[], boardLog: string[]) => [turns.map(t => `${t.speaker}: ${t.text}`).join('\n'), boardLog.length && `On the board, in order (never spoken):\n${boardLog.join('\n')}`].filter(Boolean).join('\n\n');
+export const transcriptOf = (turns: Turn[], boardLog: string[]) => [renderTurns(turns), boardLog.length && `On the board, in order (never spoken):\n${boardLog.join('\n')}`].filter(Boolean).join('\n\n');
 
 /** The person's words not yet answered: said after `afterMs` and not followed by a real reply from the voice (a receipt like "Okay." isn't one; repeating the question is). */
 export function unanswered(fragments: Fragment[], afterMs: number): string[] {
@@ -122,6 +122,7 @@ export function mindController(space: Space, send: (event: object) => void, log:
   let lastAnswered = -1; // how many of their fragments the last finished turn was written for (-1: none yet)
   let lastUserAt = 0, lastVoiceAt = 0, lastSentAt = 0, closed = false;
   let waiting = false; // the mind said it would wait (goodbye, "give me a sec"): no going on until they speak
+  let goOns = 0; // turns in a row the mind has gone on by itself (its opening counts): a person who has walked away mustn't run up the bill until the time limit
 
   const drop = (reason: string) => {
     if (!turn) return;
@@ -150,7 +151,7 @@ export function mindController(space: Space, send: (event: object) => void, log:
       goLive(null, Math.max(...fragments.map(f => f.at)));
     }
     const quiet = Date.now() - Math.max(lastUserAt, lastVoiceAt, lastSentAt); // and since words went to the voice: it's about to say them
-    if (open || waiting || quiet < 2000 || (turn && (turn.live || !turn.continues))) return;
+    if (open || waiting || goOns >= MAX_GO_ONS || quiet < 2000 || (turn && (turn.live || !turn.continues))) return;
     const last = turnsFrom(fragments).at(-1);
     if (last?.speaker !== 'Mind' || /\?\W*$/.test(last.text)) return; // a question: their turn
     if (!turn) begin(true);
@@ -220,6 +221,7 @@ export function mindController(space: Space, send: (event: object) => void, log:
     turn = null;
     lastAnswered = run.user;
     log({ type: 'mind.turn', delegation_id: run.id, ms: Date.now() - run.started, head_start_ms: run.liveAt - run.started, silence_ms: run.firstSpeechMs, text: run.done, ...run.continues ? { continued: true } : {}, ...run.board.length ? { board: run.board } : {} });
+    if (run.continues) goOns++;
     if (run.done === 'WAIT') { waiting = true; return; }
     // Only a turn that's being spoken reaches the board: an early start that was dropped never does.
     // Its opening visual is already up.
@@ -233,7 +235,7 @@ export function mindController(space: Space, send: (event: object) => void, log:
     if (event.type === 'session.input_transcript.delta') {
       fragments.push({ role: 'User', text: event.delta, at: event.start_ms ?? 0 });
       lastUserAt = Date.now();
-      waiting = false;
+      waiting = false; goOns = 0;
       board.heard(event.delta);
       if (turn && !turn.live) drop('user-spoke'); // they're still going: start again when they pause
     }
@@ -252,6 +254,7 @@ export function mindController(space: Space, send: (event: object) => void, log:
 
 const MINUTE = 60_000;
 const REATTACH_TRIES = 3;
+const MAX_GO_ONS = 4; // then the mind waits for them to say something, even after a point that isn't a question
 const append = (type: string, content: string) => ({ type, event_id: randomUUID(), delegation_id: null, content });
 
 /** Rewrites the notes from a session folder's transcript and keeps its recap; a session the person barely spoke in changes nothing. With `apply` false (a rehearsal) the notes go to the session folder only. Throws if the pass fails (run it again with `apprenticer notes`). */
@@ -278,7 +281,7 @@ export function runSession(dir: string, sessionId: string): Promise<void> {
   const usage: Tally = { seconds: 0, searches: 0 };
   const log = (event: object) => appendFileSync(join(sessionDir, 'events.jsonl'), JSON.stringify({ ...event, received_at: Date.now() }) + '\n');
   const hangup = () => openai().live.sessions.hangup(sessionId).catch(() => {});
-  let ws: WebSocket, closed = false, tries = 0;
+  let ws: WebSocket, closed = false, tries = 0, opened = false;
   const send = (event: object) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(event));
   const mind = mindController(space, send, log);
 
@@ -322,7 +325,7 @@ export function runSession(dir: string, sessionId: string): Promise<void> {
 
     function attach() {
       ws = new WebSocket(`wss://api.openai.com/v1/live/sessions/${sessionId}/attach`, { headers: { Authorization: `Bearer ${config.openaiApiKey}` } });
-      ws.on('open', () => { if (tries === 0) mind.handle({ type: 'attached' }); });
+      ws.on('open', () => { if (!opened) { opened = true; mind.handle({ type: 'attached' }); } }); // the mind opens once, even if the first attach had to be retried
       // Errors are logged, never thrown: a throw here would crash the server mid-session.
       ws.on('message', raw => {
         try { handle(JSON.parse(raw.toString())); } catch (err) { console.error(`[${sessionId}] sideband handler failed`, err); }

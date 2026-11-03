@@ -50,7 +50,7 @@ test('a session is created over WebRTC with the voice settings, one at a time un
   assert.deepEqual(ran, ['live_1']);
   const second = await post(app);
   assert.equal(second.status, 409);
-  assert.match((await second.json()).error, /saving the notes/);
+  assert.match((await second.json()).error, /still running or saving its notes/);
   finish();
   await new Promise(r => setTimeout(r, 10));
   assert.equal((await post(app)).status, 200); // free again

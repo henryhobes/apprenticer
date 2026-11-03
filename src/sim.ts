@@ -6,9 +6,9 @@ import { type Turn, mindTurn, renderTurns } from './mind.ts';
 import { boardLines, saveNotes, transcriptOf } from './session.ts';
 import { type Meta, type Space, newSessionDir, openSpace, writeMeta } from './space.ts';
 
-// A text rehearsal of a space: the mind runs exactly as in a session (same turn function, same
-// instructions, the board on) against a simulated user whose persona is a markdown file, then a judge
-// scores it. The run is saved as a session folder (tagged sim). Its notes pass runs too, but by default
+// A text rehearsal of a space: the mind runs its real turn function with its real instructions (the
+// board on) against a simulated user whose persona is a markdown file, then a judge scores it. Only the
+// reply path is rehearsed: the going-on after silence, WAIT and the voice's own timing are not. The run is saved as a session folder (tagged sim). Its notes pass runs too, but by default
 // writes only into that folder, so a rehearsal never touches the space's real memory; with `--notes` it
 // is applied to notes/, so that a second run tests memory. No voice, no daily cap.
 

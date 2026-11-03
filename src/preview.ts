@@ -28,7 +28,7 @@ const helper = `<script>
 </script>`;
 
 /**
- * Every visual of the space on its own board, as the person sees it, with its note, a button for each
+ * Every visual of the space on its own board, close to how the person sees it, with its note, a button for each
  * move the note names ("set play", ...), and a line to type what's said. `index` is the app's page,
  * which carries the base styles every visual is drawn on.
  */
@@ -77,7 +77,7 @@ export function previewPage(space: Space, index: string): string {
 </style></head>
 <body><main>
   <div class="intro"><h1>${esc(space.title)} · visuals</h1>
-    <p>${space.visuals.length ? 'Each board is exactly what the person sees. Parts come up as the mind names them: use Next part, or type the words. The gold-edged buttons are the moves the mind can make. Reload after editing a visual.' : 'This space has no visuals yet. Add files to visuals/ and reload.'}</p></div>
+    <p>${space.visuals.length ? 'Each board is a close copy of what the person sees (the real page also staggers the parts and brings up any that were never named after 8 seconds). Parts come up as the mind names them: use Next part, or type the words. The gold-edged buttons are the moves the mind can make. Reload after editing a visual.' : 'This space has no visuals yet. Add files to visuals/ and reload.'}</p></div>
   ${boards.join('\n  ')}
 </main>
 <script>

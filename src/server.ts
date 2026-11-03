@@ -24,7 +24,7 @@ export function createApp(dir: string, client: OpenAI = openai(), run = runSessi
 
   // The session in the browser over WebRTC: the server creates it, then runs the mind on its own connection.
   app.post('/api/session', async c => {
-    if (busy) return c.json({ error: 'Still saving the notes from the last session. Try again in a minute.' }, 409);
+    if (busy) return c.json({ error: 'A session is still running or saving its notes. Try again in a minute.' }, 409);
     busy = true;
     try {
       openSpace(dir); // refuses a space with no brief
