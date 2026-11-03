@@ -107,7 +107,7 @@ export async function simulate(path: string, opts: { user: string; turns: number
 
   console.log('JUDGE');
   const scored: number[] = [];
-  for (const k of keys) { const { score, evidence } = j[k]; if (score) scored.push(score); console.log(`  ${score ?? 'n/a'}/5 ${k.replace(/_/g, ' ')}: ${evidence}`); }
+  for (const k of keys) { const { score, evidence } = j[k]; if (score) scored.push(score); console.log(`  ${score ? `${score}/5` : 'n/a'} ${k.replace(/_/g, ' ')}: ${evidence}`); }
   console.log(`  worst: ${j.worst_moment}\n  best: ${j.best_moment}\n  user: "${j.user_would_say}"`);
   const mean = scored.reduce((a, b) => a + b, 0) / (scored.length || 1), sorted = [...latencies].sort((a, b) => a - b);
   console.log(`\nmean ${mean.toFixed(2)}/5; mind latency median ${sorted[Math.floor(sorted.length / 2)]?.toFixed(1)} s, max ${sorted.at(-1)?.toFixed(1)} s (${config.mindModel}, ${config.mindTier} tier)`);

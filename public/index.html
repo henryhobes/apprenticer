@@ -48,7 +48,7 @@
   #cost { color: var(--ink-dim); font-size: 13px; font-variant-numeric: tabular-nums; opacity: .5; }
 
   /* Idle, above the disc: the space's name and where you left off; after a session, what it covered. Text on the room, no panel. */
-  #head { position: fixed; left: 50%; bottom: calc(50% + 104px); transform: translateX(-50%); width: min(480px, calc(100% - 48px)); text-align: center; transition: opacity .4s var(--ease); }
+  #head { position: fixed; left: 50%; bottom: calc(50% + 96px); transform: translateX(-50%); width: min(480px, calc(100% - 48px)); text-align: center; transition: opacity .4s var(--ease); }
   body:not([data-state=off]) #head { opacity: 0; pointer-events: none; }
   #title { margin: 0; font-size: 20px; font-weight: 500; }
   #last { margin: 8px 0 0; font-size: 15px; line-height: 1.45; color: var(--ink-dim); }
@@ -61,14 +61,17 @@
   #recap li::before { content: '–'; display: inline-block; width: 16px; text-indent: 0; color: var(--ink-dim); }
   #recap p { margin: 0; }
   #open { margin-top: 8px !important; }
-  #open span { color: var(--ink-dim); }
-  #status { margin-top: 12px !important; color: var(--ink-dim); font-size: 13px; }
-  #path { margin-top: 2px !important; color: var(--ink-dim); font-size: 12px; opacity: .7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: all; }
+  #open span { color: var(--ink-dim); margin-right: .4em; }
+  #open b { font-weight: 400; }
+  #status { margin-top: 12px !important; color: var(--ink-dim); font-size: 13px; text-align: center; }
+  #path { margin-top: 2px !important; color: var(--ink-dim); font-size: 12px; opacity: .7; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: all; }
+  #status code { user-select: all; }
   #status code, #path { font-family: ui-monospace, Menlo, monospace; }
+  body[data-recap=failed] #path { display: none; } /* the command carries it */
   @keyframes fade { from { opacity: 0; } }
 
   /* One line below the disc: how to begin, or what went wrong; on the board it sits at the bottom edge. */
-  #msg { position: fixed; left: 0; right: 0; top: calc(50% + 104px); text-align: center; color: var(--ink-dim); font-size: 14px; }
+  #msg { position: fixed; left: 0; right: 0; top: calc(50% + 100px); text-align: center; color: var(--ink-dim); font-size: 14px; }
   #msg.bad { color: #D98A6A; font-size: 15px; }
   body[data-state=on] #msg { top: auto; bottom: 28px; }
 </style>
@@ -82,7 +85,7 @@
     <p id="last"></p>
     <div id="recap">
       <ul id="covered"></ul>
-      <p id="open"><span>Open</span> <b></b></p>
+      <p id="open"><span>Open:</span><b></b></p>
       <p id="status"></p>
       <p id="path"></p>
     </div>

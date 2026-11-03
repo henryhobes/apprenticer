@@ -1,6 +1,6 @@
 import { STEPS, tmpSpace } from './setup.ts';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { DEFAULT_MEMORY, SOURCE_CAP, lastRecap, newSessionDir, openSpace, readMeta, readSpace, spentToday, writeMeta, writeNotes } from '../src/space.ts';

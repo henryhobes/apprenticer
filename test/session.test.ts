@@ -15,12 +15,12 @@ const frag = (role: 'User' | 'Mind', text: string, at: number) => ({ role, text,
 test('the mind sees the session as turns, in the order they were spoken', () => {
   assert.deepEqual(turnsFrom([
     frag('Mind', 'Hey there. ', 0),
-    frag('User', 'waits on memory.', 2600),
-    frag('User', 'Because the GPU ', 2000),
+    frag('User', 'waits on the database.', 2600),
+    frag('User', 'Because the cache ', 2000),
     frag('Mind', 'Right.', 5200),
   ]), [
     { speaker: 'Mind', text: 'Hey there.' },
-    { speaker: 'User', text: 'Because the GPU waits on memory.' },
+    { speaker: 'User', text: 'Because the cache waits on the database.' },
     { speaker: 'Mind', text: 'Right.' },
   ]);
 });
@@ -32,11 +32,11 @@ test('the transcript is what was said, then what was on the board', () => {
 });
 
 test("their words count as unanswered until the voice really replies, not just with a receipt", () => {
-  const asked = [frag('Mind', 'So does a bigger batch help each person?', 0), frag('User', 'No', 3000)];
+  const asked = [frag('Mind', 'So does a bigger batch help each caller?', 0), frag('User', 'No', 3000)];
   assert.deepEqual(unanswered(asked, 0), ['No']);
   assert.deepEqual(unanswered([...asked, frag('Mind', 'Okay.', 3600)], 0), ['No']);
   // Asked to repeat, the voice repeats the question itself: nothing left for the mind.
-  assert.deepEqual(unanswered([...asked, frag('Mind', 'Sure. Does a bigger batch help each person?', 3600)], 0), []);
+  assert.deepEqual(unanswered([...asked, frag('Mind', 'Sure. Does a bigger batch help each caller?', 3600)], 0), []);
   assert.deepEqual(unanswered(asked, 3000), []); // already answered up to there
   assert.deepEqual(unanswered([asked[0], frag('User', 'Um, mm-hmm...', 3000)], 0), []); // still thinking
   // Deltas arrive as tokens: punctuation isn't a word, so "Mm. Okay. Right." is still only a receipt.
@@ -45,8 +45,8 @@ test("their words count as unanswered until the voice really replies, not just w
 });
 
 test('a late delegation for words the watchdog already had answered starts no second turn', () => {
-  const said = [frag('Mind', 'So does a bigger batch help each person?', 0), frag('User', 'No, each one waits longer', 3000),
-    frag('Mind', 'Right: the batch fills the GPU, but each person waits for the slowest.', 6500)];
+  const said = [frag('Mind', 'So does a bigger batch help each caller?', 0), frag('User', 'No, each one waits longer', 3000),
+    frag('Mind', 'Right: the batch fills the worker, but each person waits for the slowest.', 6500)];
   assert.equal(alreadyAnswered(said, 3000, 1), true);
   assert.equal(alreadyAnswered([...said, frag('User', ' Why?', 9000)], 3000, 1), false); // they've said more
   assert.equal(alreadyAnswered(said.slice(0, 2), 0, 1), false); // not yet answered up to their words
