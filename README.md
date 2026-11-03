@@ -17,7 +17,7 @@ you ⇄ browser (WebRTC) ⇄ OpenAI GPT-Live: the voice and ears only
 Needs Node 24+ and an `OPENAI_API_KEY`.
 
 ```bash
-git clone <this repo> && cd apprenticer && npm install && npm run build && npm link   # puts `apprenticer` on your PATH
+git clone <this repo> && cd apprenticer && npm install && npm link   # puts `apprenticer` on your PATH
 apprenticer init ./my-space
 ```
 
@@ -76,7 +76,7 @@ The cost on the page and the cap count voice minutes, web searches and the mind'
 - Localhost only, no login: the server binds to 127.0.0.1 and refuses any other `Host`. Everything in a space is sent to OpenAI.
 - One session at a time. The next can't start until the last one's notes are saved (a minute or so), so it never begins from stale notes.
 - Voice only, no typing. The mind speaks first. After a point that isn't a question, it carries on if you stay quiet (up to four turns in a row, so walking away doesn't run up a bill); after a question it waits. Sessions end at GPT-Live's two-hour limit (a warning at 105 minutes).
-- Node runs the TypeScript directly, so developing needs no build: `npm test`, `npm run typecheck`, `npm start -- ./my-space` (or `node bin/apprenticer.ts ./my-space`). Node won't run TypeScript from inside `node_modules`, so what is published is compiled: `npm run build` writes `dist/` (the `apprenticer` command runs it; `npm pack` and `npm publish` build first).
+- Node runs the TypeScript directly, so developing needs no build: `npm test`, `npm run typecheck`, `npm start -- ./my-space` (or `node bin/apprenticer.ts ./my-space`). Node won't run TypeScript from inside `node_modules`, so what is published is compiled: `npm run build` writes `dist/` (the `apprenticer` command runs it; `npm install`, `npm pack` and `npm publish` build it first).
 
 ```bash
 npm test
