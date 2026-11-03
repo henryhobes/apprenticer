@@ -128,7 +128,7 @@ export async function mindTurn(space: Space, turns: Turn[], opts: { effort?: 'lo
   const lookup = said.match(/^LOOKUP:\s*(.+)/is)?.[1].trim();
   if (lookup) {
     opts.onLookup?.(lookup);
-    said = await ask(`You asked to look up: ${lookup}. Search for it, then write only what you say next, as the Mind, giving the fact with its date.`, true);
+    said = await ask(`You asked to look up: ${lookup}. Search for it, then write only what you say next, as the Mind. Give a date only when the fact may have changed. If the search didn't settle it, say plainly that you don't know.`, true);
   }
   if (WAIT.test(said)) return 'WAIT';
   const commands = boardCommands(raw);

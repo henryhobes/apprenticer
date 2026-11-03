@@ -60,12 +60,13 @@ export async function simulate(path: string, opts: { user: string; turns: number
   console.log(`${space.title} · ${space.notes.length} notes${hadMemory ? '' : ' (empty)'} · ${space.visuals.length} visuals · tier ${config.mindTier} · ${opts.turns} turns\n`);
 
   board.start(join(sessionDir, 'drawings'));
+  const searches: string[] = []; // the mind's LOOKUPs, for the judge: they happened, though the user never sees them
   let leaving = false, clockMs = 0; // the rehearsal's clock: speech at 150 words a minute and 3 s between turns, so a brief's timed arcs can be tested
   const pass = (text: string) => { clockMs += (text.split(/\s+/).length / 150 * 60 + 3) * 1000; };
   for (let i = 0; ; i++) {
     const t0 = Date.now();
     let commands: board.BoardCommand[] = [];
-    const said = await mindTurn(space, turns, { goOn: i === 0, elapsedMs: clockMs, onLookup: what => console.log(`[lookup: ${what}]`),
+    const said = await mindTurn(space, turns, { goOn: i === 0, elapsedMs: clockMs, onLookup: what => { console.log(`[lookup: ${what}]`); searches.push(`before Mind turn ${turns.filter(t => t.speaker === 'Mind').length + 1}: ${what}`); },
       board: { instructions: board.boardInstructions(space.visuals), onScreen: board.onScreen() }, onBoard: c => { commands = c; } });
     const ms = Date.now() - t0;
     if (said === 'WAIT') console.log('Mind: [waits]');
@@ -106,6 +107,7 @@ export async function simulate(path: string, opts: { user: string; turns: number
         space.sources.length && `SOURCES\n${space.sources.map(s => `## ${s.name}\n${s.text}`).join('\n\n')}`,
         `PREPARED VISUALS (private notes to the mind, not visible to the user)\n${space.visuals.map(v => `- ${v.id}: ${v.title}. ${v.when}`).join('\n') || '(none)'}`,
         `THE SIMULATED USER'S PERSONA\n${persona}`, `TRANSCRIPT\n${renderTurns(seen)}`,
+        searches.length && `THE MIND'S WEB SEARCHES (it searched before answering; the results aren't recorded)\n${searches.join('\n')}`,
         boardLog.length && `THE MIND'S BOARD COMMANDS, in order (private notes to the mind, not visible to the user)\n${boardLog.join('\n')}`].filter(Boolean).join('\n\n') }],
     text: { format: { type: 'json_schema', name: 'judgement', schema: JUDGEMENT, strict: true } },
   }).then(r => JSON.parse(r.output_text));
