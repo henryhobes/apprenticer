@@ -26,9 +26,16 @@ test('init makes a starting space, keeps what is already there, and ends up pass
   assert.equal(readFileSync(join(dir, '.gitignore'), 'utf8'), 'sessions/\n');
   assert.ok(run('init', dir).stdout.split('\n').filter(l => l.startsWith('kept')).length >= 5);
   assert.equal(run('check', dir).status, 0);
-  const hasAgents = existsSync(new URL('../AGENTS.md', import.meta.url));
-  assert.equal(existsSync(join(dir, 'AGENTS.md')), hasAgents); // copied when the repo has one
-  assert.equal(existsSync(join(dir, 'CLAUDE.md')) && readFileSync(join(dir, 'CLAUDE.md'), 'utf8'), hasAgents && '@AGENTS.md\n');
+  // The coding agent's guide ships as template/AGENTS.md and is copied in, with a CLAUDE.md that points at it.
+  assert.ok(existsSync(new URL('../template/AGENTS.md', import.meta.url)));
+  assert.equal(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), readFileSync(new URL('../template/AGENTS.md', import.meta.url), 'utf8'));
+  assert.equal(readFileSync(join(dir, 'CLAUDE.md'), 'utf8'), '@AGENTS.md\n');
+});
+
+test('a persona.md at the space root (for sim) is not a problem for check', () => {
+  const result = run('check', tmpSpace({ 'brief.md': '# Good\n\nBe good.', 'persona.md': '# Sam\n\nNo leading comment here.', 'sessions/2026-01-01T00-00-00/transcript.md': 'x' }));
+  assert.equal(result.status, 0);
+  assert.doesNotMatch(result.stdout, /persona/);
 });
 
 test('serving needs a brief, and sim needs a user file', () => {

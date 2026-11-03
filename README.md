@@ -21,7 +21,7 @@ git clone <this repo> && cd apprenticer && npm install && npm link   # puts `app
 apprenticer init ./my-space
 ```
 
-Open `./my-space` in your coding agent (Claude Code, Codex, ...). `init` put an `AGENTS.md` there that tells it how to build a space with you: it interviews you, writes the brief, and builds the visuals. Then:
+Open `./my-space` in your coding agent (Claude Code, Codex, ...). `init` put an `AGENTS.md` there (and a `CLAUDE.md` that points at it) that tells it how to build a space with you: it interviews you, writes the brief, and builds the visuals. Then:
 
 ```bash
 apprenticer ./my-space
@@ -42,7 +42,7 @@ my-space/
   sessions/       the runtime's: transcript, events, session.json, drawings, the notes as they were.
 ```
 
-A leading HTML comment in any file is a note to the mind. `AGENTS.md` is the full guide to writing one; `examples/` has a worked space.
+A leading HTML comment in any file is a note to the mind. `template/AGENTS.md` is the full guide to writing one (`init` copies it into your space for your coding agent); `examples/design-review/` is a worked space.
 
 ## Commands
 
@@ -52,7 +52,7 @@ A leading HTML comment in any file is a note to the mind. `AGENTS.md` is the ful
 | `apprenticer init <dir>` | start a space: a stub brief, `notes/memory.md`, `visuals/`, `sources/`, a `.gitignore`, and `AGENTS.md` for your coding agent |
 | `apprenticer check <dir>` | static checks, no key needed: a brief, a title sentence on every visual and note, a `data-cue` on every step after the first, sources under the cap. Exit code 1 on a problem |
 | `apprenticer notes <dir> [session]` | save the notes for a session whose notes update failed |
-| `apprenticer sim <dir> --user persona.md` | rehearse the space in text, no voice: the mind against a simulated user described in `persona.md`, then a judge scores the mind 1-5 on following the brief, adapting to the user, turns for a voice, board use, pushback and leaving, honesty and (in a later run) memory. `--turns 10`, `--out file.json`, `--draw` (really draw `draw` lines), `--no-notes`, `--tier ultrafast` for real-session latencies. Notes are updated, so a second run tests memory |
+| `apprenticer sim <dir> --user persona.md` | rehearse the space in text, no voice: the mind against a simulated user described in `persona.md`, then a judge scores the mind 1-5 on following the brief, adapting to the user, turns for a voice, board use, pushback and leaving, honesty and (in a later run) memory. `--turns 10`, `--out file.json`, `--draw` (really draw `draw` lines), `--tier ultrafast` for real-session latencies. The notes pass writes its result only into the run's own `sessions/<ts>/notes-after/`, so a rehearsal never touches your real memory; `--notes` applies it to `notes/` (so a second run tests memory), `--no-notes` skips the pass |
 
 ## Environment
 

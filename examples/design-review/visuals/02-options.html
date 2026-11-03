@@ -1,0 +1,38 @@
+<!-- Two ways out. For concern 2, as Dana asks why not option A: the design doc's two options side by side, a table with no borders. Row names down the left, in grey: effort, still with us, new to us. The "A separate Postgres" column is up at once; the managed queue column comes up as Dana says "queue", so in the turn that shows it she names A first and the queue second ("a separate Postgres in two weeks, or the queue in ten?"). Effort: 2 weeks against 10 weeks, the 10 in gold: the price Sam is asking her to pay. Still with us: "polling, duplicates" under A, a dash under the queue. New to us: a dash under A, "at-least-once delivery" under the queue, in grey. "set leftover" moves the gold to A's "polling, duplicates": make it as Dana takes the point, once Sam has said what A leaves unfixed. "set risk" moves the gold to "at-least-once delivery": make it to open concern 3, as Dana asks what happens the day a charge_card job arrives twice. "set effort" puts the gold back on the 10 weeks. Not on the board, also from the doc: about $900 a month for A, $160 for the queue. -->
+<style>
+  .head{fill:var(--ink);font-size:30px}
+  .row{fill:var(--ink-dim);font-size:26px}
+  .val{fill:var(--ink);font-size:28px;transition:fill .5s var(--ease)}
+  .big{fill:var(--ink);font-size:64px;transition:fill .5s var(--ease)}
+  .unit{fill:var(--ink-dim);font-size:26px}
+  .none{fill:var(--ink-dim);font-size:28px}
+  #risk{fill:var(--ink-dim)}
+  .hot,#risk.hot{fill:var(--gold)}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round">
+  <g class="step">
+    <text class="row" x="120" y="306">Effort</text>
+    <text class="row" x="120" y="446">Still with us</text>
+    <text class="row" x="120" y="586">New to us</text>
+    <path d="M120 196 H1140" stroke="var(--faint)" stroke-width="2"/>
+    <text class="head" x="430" y="160">A separate Postgres</text>
+    <text class="big" x="430" y="310">2<tspan class="unit" dx="12">weeks</tspan></text>
+    <text class="val" id="leftover" x="430" y="446">polling, duplicates</text>
+    <text class="none" x="430" y="586">—</text>
+  </g>
+  <g class="step" data-cue="queue|sqs">
+    <text class="head" x="800" y="160">Managed queue</text>
+    <text class="big hot" id="effort" x="800" y="310">10<tspan class="unit" dx="12">weeks</tspan></text>
+    <text class="none" x="800" y="446">—</text>
+    <text class="val" id="risk" x="800" y="586">at-least-once delivery</text>
+  </g>
+</svg>
+<script>
+// One gold cell at a time: the one Dana is pointing at.
+const cells = ['effort', 'leftover', 'risk'].map(id => document.getElementById(id));
+addEventListener('message', e => {
+  const s = String(e.data?.set ?? '').trim().toLowerCase();
+  const at = cells.find(c => c.id === s);
+  if (at) cells.forEach(c => c.classList.toggle('hot', c === at));
+});
+</script>

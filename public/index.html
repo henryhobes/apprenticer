@@ -38,32 +38,37 @@
   body[data-state=on] #power { box-shadow: 0 0 0 1.5px var(--ink-dim); }
   body.board #power, body[data-state=on] #power { left: calc(100% - 80px); top: calc(100% - 80px); width: 52px; height: 52px; font-size: 13px; }
   body[data-state=on].speaking #power { animation: breathe 1.6s ease-in-out infinite; }
-  body.board #power, body.board #mute { opacity: .4; } /* the board's one gold element is the drawing's */
+  body.board #power, body.board #mute { opacity: .55; } /* the board's one gold element is the drawing's */
   #power:hover, #mute:hover, #mute[aria-pressed=true] { opacity: 1; }
   @keyframes breathe { 50% { transform: scale(1.08); } }
   #dock { position: fixed; right: 92px; bottom: 37px; display: flex; align-items: center; gap: 12px; visibility: hidden; }
   body[data-state=on] #dock { visibility: visible; }
   #mute { padding: 7px 16px; border-radius: 20px; background: var(--panel); color: var(--ink-dim); font-size: 13px; }
   #mute[aria-pressed=true] { background: var(--ink); color: #111214; }
-  #cost { color: var(--ink-dim); font-size: 13px; font-variant-numeric: tabular-nums; opacity: .5; }
+  #cost { color: var(--ink-dim); font-size: 13px; font-variant-numeric: tabular-nums; opacity: .7; }
 
   /* Idle, above the disc: the space's name and where you left off; after a session, what it covered. Text on the room, no panel. */
-  #head { position: fixed; left: 50%; bottom: calc(50% + 96px); transform: translateX(-50%); width: min(480px, calc(100% - 48px)); text-align: center; transition: opacity .4s var(--ease); }
+  #head { position: fixed; left: 50%; bottom: calc(50% + 108px); transform: translateX(-50%); width: min(520px, calc(100% - 48px)); text-align: center; transition: opacity .4s var(--ease); }
   body:not([data-state=off]) #head { opacity: 0; pointer-events: none; }
   #title { margin: 0; font-size: 20px; font-weight: 500; }
   #last { margin: 8px 0 0; font-size: 15px; line-height: 1.45; color: var(--ink-dim); }
   #last div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   body[data-recap] #last { display: none; }
-  #recap { display: none; margin-top: 14px; text-align: left; font-size: 15px; line-height: 1.5; animation: fade .6s var(--ease) .6s backwards; }
+  /* While a recap is up the disc steps down, so it has room above and still sits 28px clear of the text. */
+  body[data-recap] #head { bottom: calc(50% + 60px); }
+  body[data-recap] #power { top: calc(50% - 32px); }
+  body[data-recap=saving] #power { opacity: .6; }
+  #recap { display: none; margin-top: 10px; text-align: left; font-size: 15px; line-height: 1.4; animation: fade .6s var(--ease) .6s backwards; }
   body[data-recap] #recap { display: block; }
-  #recap ul { margin: 0; padding: 0; list-style: none; opacity: .85; }
+  #recap ul { margin: 0; padding: 0; list-style: none; color: var(--ink-dim); } /* the past is dim; only the open question carries forward */
   #recap li { padding-left: 16px; text-indent: -16px; }
   #recap li::before { content: '–'; display: inline-block; width: 16px; text-indent: 0; color: var(--ink-dim); }
   #recap p { margin: 0; }
-  #open { margin-top: 8px !important; }
+  #open { margin-top: 6px !important; }
   #open span { color: var(--ink-dim); margin-right: .4em; }
   #open b { font-weight: 400; }
-  #status { margin-top: 12px !important; color: var(--ink-dim); font-size: 13px; text-align: center; }
+  #status { margin-top: 10px !important; color: var(--ink-dim); font-size: 13px; text-align: center; }
+  body[data-recap=failed] #status { color: var(--ink); font-size: 14px; }
   #path { margin-top: 2px !important; color: var(--ink-dim); font-size: 12px; opacity: .7; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: all; }
   #status code { user-select: all; }
   #status code, #path { font-family: ui-monospace, Menlo, monospace; }
@@ -71,8 +76,9 @@
   @keyframes fade { from { opacity: 0; } }
 
   /* One line below the disc: how to begin, or what went wrong; on the board it sits at the bottom edge. */
-  #msg { position: fixed; left: 0; right: 0; top: calc(50% + 100px); text-align: center; color: var(--ink-dim); font-size: 14px; }
+  #msg { position: fixed; left: 0; right: 0; top: calc(50% + 108px); text-align: center; color: var(--ink-dim); font-size: 14px; }
   #msg.bad { color: #D98A6A; font-size: 15px; }
+  body[data-recap] #msg { top: calc(50% + 156px); }
   body[data-state=on] #msg { top: auto; bottom: 28px; }
 </style>
 </head>
@@ -128,13 +134,12 @@ function say(text, bad) { $('msg').textContent = text; $('msg').classList.toggle
 const dollars = usd => '$' + (Math.floor(usd * 20) / 20).toFixed(2); // in nickels, so it doesn't visibly tick
 
 async function on() {
-  say('');
-  delete document.body.dataset.recap;
-  spent = 0; $('cost').textContent = '';
+  if ($('msg').classList.contains('bad')) say(''); // an old error; the first-run hint stays through the microphone prompt
   setState('connecting', '…');
   $('remote').play().catch(() => {}); // unlock audio inside the tap
   try {
     mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    say('Connecting…');
     pc = new RTCPeerConnection();
     // A session once started with no sound and nothing said why: say so, and what fixed it then.
     pc.ontrack = e => {
@@ -161,6 +166,9 @@ async function on() {
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `The server said ${res.status}.`);
     await pc.setRemoteDescription({ type: 'answer', sdp: (await res.json()).sdp });
     setState('on', 'Off');
+    say('');
+    delete document.body.dataset.recap; // the last session's recap stays until this one is really on
+    spent = 0; $('cost').textContent = dollars(0);
     startedAt = Date.now();
     navigator.wakeLock?.request('screen').catch(() => {});
   } catch (err) {
@@ -194,8 +202,9 @@ function recap(e) {
   $('covered').replaceChildren(...(e.covered || []).map(c => Object.assign(document.createElement('li'), { textContent: c })));
   $('open').hidden = !e.open; $('open').lastElementChild.textContent = e.open || '';
   const took = `${Math.max(1, Math.round((Date.now() - startedAt) / 60000))} min · ${dollars(spent)}`;
-  if (e.failed) $('status').replaceChildren('Notes not saved · run ', Object.assign(document.createElement('code'), { textContent: `apprenticer notes ${space.dir}` }));
-  else $('status').textContent = e.skipped ? `Too short to keep notes · ${took}` : `Notes updated · ${took}`;
+  if (e.skipped) { delete document.body.dataset.recap; say(`Too short to keep notes · ${took}`); return loadSpace(); } // not a recap: the last-time lines come back
+  if (e.failed) $('status').replaceChildren('Notes not saved · run ', Object.assign(document.createElement('code'), { textContent: `npx apprenticer notes ${space.dir}` }));
+  else $('status').textContent = `Notes updated · ${took}`;
   document.body.dataset.recap = e.failed ? 'failed' : 'saved';
   if (!e.failed) loadSpace(); // the next "last time" line
 }

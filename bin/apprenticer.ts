@@ -14,7 +14,7 @@ const USAGE = `apprenticer <dir>                    serve the space in <dir> on 
 apprenticer init <dir>               start a new space
 apprenticer check <dir>              check a space's files (no key, no model)
 apprenticer notes <dir> [session]    save the notes for a session whose notes pass failed
-apprenticer sim <dir> --user <file.md> [--turns 10] [--out file] [--draw] [--no-notes] [--tier default]
+apprenticer sim <dir> --user <file.md> [--turns 10] [--out file] [--draw] [--notes | --no-notes] [--tier default]
                                      rehearse the space in text against a simulated user`;
 
 const STUB_BRIEF = `# My space
@@ -36,7 +36,7 @@ function init(path: string) {
   make('visuals/.gitkeep', '');
   make('sources/.gitkeep', '');
   make('.gitignore', 'sessions/\n');
-  const agents = new URL('../AGENTS.md', import.meta.url);
+  const agents = new URL('../template/AGENTS.md', import.meta.url); // the guide a coding agent follows to build the space
   if (existsSync(agents)) { make('AGENTS.md', readFileSync(agents)); make('CLAUDE.md', '@AGENTS.md\n'); }
   console.log(`\nOpen ${path} in your coding agent and tell it what you want to work on: it writes the brief, visuals and sources.\nThen: apprenticer ${path}`);
 }
@@ -84,7 +84,7 @@ async function notes(path: string, which?: string) {
 try {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     user: { type: 'string' }, turns: { type: 'string' }, out: { type: 'string' }, tier: { type: 'string' }, help: { type: 'boolean', short: 'h' },
-    draw: { type: 'boolean' }, 'no-notes': { type: 'boolean' }, 'no-open': { type: 'boolean' } } });
+    draw: { type: 'boolean' }, notes: { type: 'boolean' }, 'no-notes': { type: 'boolean' }, 'no-open': { type: 'boolean' } } });
   const [cmd, dir, extra] = ['init', 'check', 'notes', 'sim'].includes(positionals[0]) ? positionals : ['serve', ...positionals];
   if (values.help || !dir) console.log(USAGE);
   else if (cmd === 'init') init(dir);
@@ -94,7 +94,7 @@ try {
     if (!values.user) throw new Error('sim needs --user <file.md>: who the simulated user is, how they talk, what they will do.');
     await requireKey();
     config.mindTier = (values.tier ?? 'default') as typeof config.mindTier; // a rehearsal doesn't need the 6x tier; --tier ultrafast for real latencies
-    await simulate(dir, { user: values.user, turns: Number(values.turns ?? 10), out: values.out, draw: !!values.draw, notes: !values['no-notes'] });
+    await simulate(dir, { user: values.user, turns: Number(values.turns ?? 10), out: values.out, draw: !!values.draw, notes: values['no-notes'] ? 'skip' : values.notes ? 'apply' : 'preview' });
   } else await serveSpace(dir, !values['no-open']);
 } catch (err: any) {
   console.error(err.message);

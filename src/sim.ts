@@ -8,8 +8,9 @@ import { type Meta, type Space, newSessionDir, openSpace, writeMeta } from './sp
 
 // A text rehearsal of a space: the mind runs exactly as in a session (same turn function, same
 // instructions, the board on) against a simulated user whose persona is a markdown file, then a judge
-// scores it. The run is saved as a session folder (tagged sim), and its notes pass runs so that a
-// second run tests memory. No voice, no daily cap.
+// scores it. The run is saved as a session folder (tagged sim). Its notes pass runs too, but by default
+// writes only into that folder, so a rehearsal never touches the space's real memory; with `--notes` it
+// is applied to notes/, so that a second run tests memory. No voice, no daily cap.
 
 const USER = (persona: string) => `You are role-playing a person in a rehearsal, to test an AI that talks with them by voice. Behave exactly like the person described below, and never mention that this is a test.
 
@@ -43,7 +44,7 @@ const screenNote = (commands: board.BoardCommand[], space: Space, looks: string)
   return parts.length ? ` [Screen: ${parts.join('; ')}]` : '';
 };
 
-export async function simulate(path: string, opts: { user: string; turns: number; out?: string; draw: boolean; notes: boolean }) {
+export async function simulate(path: string, opts: { user: string; turns: number; out?: string; draw: boolean; notes: 'preview' | 'apply' | 'skip' }) {
   const space = openSpace(path), persona = readFileSync(opts.user, 'utf8').trim();
   const sessionDir = newSessionDir(space.dir), started = Date.now();
   const meta: Meta = { id: `sim-${started}`, started_at: new Date(started).toISOString(), cost_usd: 0, sim: true };
@@ -102,7 +103,7 @@ export async function simulate(path: string, opts: { user: string; turns: number
         `THE SIMULATED USER'S PERSONA\n${persona}`, `TRANSCRIPT\n${renderTurns(seen)}`].filter(Boolean).join('\n\n') }],
     text: { format: { type: 'json_schema', name: 'judgement', schema: JUDGEMENT, strict: true } },
   }).then(r => JSON.parse(r.output_text));
-  const notes = opts.notes ? saveNotes(space.dir, sessionDir).then(m => m.recap ?? null, err => { console.error('notes pass failed:', err); return null; }) : Promise.resolve(null);
+  const notes = opts.notes !== 'skip' ? saveNotes(space.dir, sessionDir, opts.notes === 'apply').then(m => m.recap ?? null, err => { console.error('notes pass failed:', err); return null; }) : Promise.resolve(null);
   const [j, recap] = await Promise.all([judge, notes]);
 
   console.log('JUDGE');
@@ -111,8 +112,8 @@ export async function simulate(path: string, opts: { user: string; turns: number
   console.log(`  worst: ${j.worst_moment}\n  best: ${j.best_moment}\n  user: "${j.user_would_say}"`);
   const mean = scored.reduce((a, b) => a + b, 0) / (scored.length || 1), sorted = [...latencies].sort((a, b) => a - b);
   console.log(`\nmean ${mean.toFixed(2)}/5; mind latency median ${sorted[Math.floor(sorted.length / 2)]?.toFixed(1)} s, max ${sorted.at(-1)?.toFixed(1)} s (${config.mindModel}, ${config.mindTier} tier)`);
-  if (recap) console.log(`notes updated; recap: ${recap.covered.join(' / ')}${recap.open ? ` · open: ${recap.open}` : ''}`);
-  else if (opts.notes) console.log('notes not updated (too short, or the pass failed)');
+  if (recap) console.log(`${opts.notes === 'apply' ? 'notes/ updated' : `notes pass written to ${join(sessionDir, 'notes-after')} only (--notes applies it to notes/)`}; recap: ${recap.covered.join(' / ')}${recap.open ? ` · open: ${recap.open}` : ''}`);
+  else if (opts.notes !== 'skip') console.log('notes pass produced nothing (too short, or it failed)');
   const out = opts.out ?? join(sessionDir, 'sim.json');
   writeFileSync(out, JSON.stringify({ space: space.title, user: opts.user, tier: config.mindTier, turns: rows, latencies, board: boardLog, judgement: j, mean, recap }, null, 2) + '\n');
   console.log(`saved ${out}\nsession ${sessionDir}`);

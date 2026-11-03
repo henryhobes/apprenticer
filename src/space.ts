@@ -8,7 +8,7 @@ export interface Note { name: string; about: string; body: string }
 export interface Source { name: string; text: string }
 export interface Space { dir: string; title: string; brief: string; visuals: Visual[]; notes: Note[]; sources: Source[]; errors: string[]; warnings: string[] }
 export interface Recap { covered: string[]; open: string }
-export interface Meta { id: string; started_at: string; ended_at?: string; duration_s?: number; cost_usd: number; sim?: boolean; recap?: Recap; notes?: 'updated' | 'skipped' }
+export interface Meta { id: string; started_at: string; ended_at?: string; duration_s?: number; cost_usd: number; sim?: boolean; recap?: Recap; notes?: 'updated' | 'skipped' | 'preview' }
 
 export const SOURCE_CAP = 100_000;
 export const DEFAULT_MEMORY = 'What I know about this person and how our sessions have gone: who they are, what they want, how they like to work, what we covered, and what is still open.';
@@ -79,12 +79,17 @@ export function openSpace(path: string): Space {
   return space;
 }
 
-/** Writes the notes the mind rewrote, each under its own comment; the notes as they were are kept in the session folder. */
-export function writeNotes(space: Space, bodies: Record<string, string>, sessionDir: string) {
-  if (existsSync(join(space.dir, 'notes'))) cpSync(join(space.dir, 'notes'), join(sessionDir, 'notes-before'), { recursive: true });
+/**
+ * Writes the notes the mind rewrote, each under its own comment; the notes as they were are kept in the
+ * session folder. A rehearsal (`apply` false) writes them to the session folder's notes-after/ instead and leaves notes/ alone.
+ */
+export function writeNotes(space: Space, bodies: Record<string, string>, sessionDir: string, apply = true) {
+  const out = apply ? join(space.dir, 'notes') : join(sessionDir, 'notes-after');
+  if (apply && existsSync(out)) cpSync(out, join(sessionDir, 'notes-before'), { recursive: true });
+  mkdirSync(out, { recursive: true });
   for (const n of space.notes) {
     const body = bodies[n.name]?.trim(); // an empty answer never wipes a note
-    if (body) writeFileSync(join(space.dir, 'notes', `${n.name}.md`), `${n.about ? `<!-- ${n.about} -->\n\n` : ''}${body}\n`);
+    if (body) writeFileSync(join(out, `${n.name}.md`), `${n.about ? `<!-- ${n.about} -->\n\n` : ''}${body}\n`);
   }
 }
 
@@ -106,5 +111,5 @@ export function spentToday(dir: string, now = new Date()): number {
   return sessionDirs(dir).map(readMeta).reduce((sum, m) => m && !m.sim && Date.parse(m.started_at) >= midnight ? sum + m.cost_usd : sum, 0);
 }
 
-/** The newest session's recap, for the "last time" line. */
-export const lastRecap = (dir: string): Recap | null => sessionDirs(dir).reverse().map(readMeta).find(m => m?.recap)?.recap ?? null;
+/** The newest real session's recap, for the "last time" line: a rehearsal isn't last time. */
+export const lastRecap = (dir: string): Recap | null => sessionDirs(dir).reverse().map(readMeta).find(m => m?.recap && !m.sim)?.recap ?? null;

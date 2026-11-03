@@ -81,6 +81,15 @@ test('the notes the mind rewrote go under their own comments, and the notes as t
   assert.deepEqual(readdirSync(join(dir, 'sessions')).length, 1);
 });
 
+test('a rehearsal writes the new notes into its own session folder and leaves notes/ alone', () => {
+  const dir = tmpSpace({ 'brief.md': BRIEF, 'notes/a.md': '<!-- Alpha. -->\n\nreal memory\n' });
+  const space = readSpace(dir), session = newSessionDir(dir);
+  writeNotes(space, { a: 'rehearsal result' }, session, false);
+  assert.equal(readFileSync(join(dir, 'notes/a.md'), 'utf8'), '<!-- Alpha. -->\n\nreal memory\n');
+  assert.equal(readFileSync(join(session, 'notes-after/a.md'), 'utf8'), '<!-- Alpha. -->\n\nrehearsal result\n');
+  assert.equal(existsSync(join(session, 'notes-before')), false);
+});
+
 test("a day's spend counts this space's real sessions since midnight, not simulated ones; the last recap is the newest one", () => {
   const dir = tmpSpace({ 'brief.md': BRIEF });
   const now = new Date(), yesterday = new Date(now.getTime() - 30 * 3600_000);
@@ -93,8 +102,9 @@ test("a day's spend counts this space's real sessions since midnight, not simula
   session(now, {}, '2026-01-02T10-00-00');
   session(now, { sim: true }, '2026-01-02T11-00-00');
   session(now, { cost_usd: 2, recap: { covered: ['new'], open: 'q' } }, '2026-01-02T12-00-00');
+  session(now, { sim: true, recap: { covered: ['rehearsal'], open: '' } }, '2026-01-02T13-00-00');
   assert.equal(spentToday(dir, now), 3.5);
-  assert.deepEqual(lastRecap(dir), { covered: ['new'], open: 'q' });
+  assert.deepEqual(lastRecap(dir), { covered: ['new'], open: 'q' }); // a rehearsal isn't last time
   assert.equal(readMeta(join(dir, 'sessions', '2026-01-02T12-00-00'))?.cost_usd, 2);
   assert.equal(lastRecap(tmpSpace({ 'brief.md': BRIEF })), null);
 });

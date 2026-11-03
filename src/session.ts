@@ -254,16 +254,16 @@ const MINUTE = 60_000;
 const REATTACH_TRIES = 3;
 const append = (type: string, content: string) => ({ type, event_id: randomUUID(), delegation_id: null, content });
 
-/** Rewrites the notes from a session folder's transcript and keeps its recap; a session the person barely spoke in changes nothing. Throws if the pass fails (run it again with `apprenticer notes`). */
-export async function saveNotes(dir: string, sessionDir: string): Promise<Meta> {
+/** Rewrites the notes from a session folder's transcript and keeps its recap; a session the person barely spoke in changes nothing. With `apply` false (a rehearsal) the notes go to the session folder only. Throws if the pass fails (run it again with `apprenticer notes`). */
+export async function saveNotes(dir: string, sessionDir: string, apply = true): Promise<Meta> {
   const meta = readMeta(sessionDir)!, transcript = readFileSync(join(sessionDir, 'transcript.md'), 'utf8');
   const spoken = (transcript.match(/(?<=^User: ).*$/gm) ?? []).join(' ').split(/\s+/).filter(Boolean).length;
   if (spoken < 20) meta.notes = 'skipped'; // no sound, say: not a session worth remembering
   else {
     const space = readSpace(dir), started = new Date(meta.started_at); // read again: they may have edited the notes since
     const { recap, notes } = await notesPass(space, transcript, `${localDate(started)} ${started.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`);
-    writeNotes(space, notes, sessionDir);
-    Object.assign(meta, { recap, notes: 'updated' });
+    writeNotes(space, notes, sessionDir, apply);
+    Object.assign(meta, { recap, notes: apply ? 'updated' : 'preview' });
   }
   writeMeta(sessionDir, meta);
   return meta;

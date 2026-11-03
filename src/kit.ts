@@ -39,7 +39,7 @@ export function cues(labels: string[]): string[] {
   return all.map((ws, i) => [...new Set(ws)].filter(w => !all.some((o, j) => j !== i && o.includes(w))).join('|'));
 }
 
-/** Text broken into lines that fit `width`, shrinking from `size` toward 18 px if it won't fit in `max` lines (by an average glyph width). */
+/** Text broken into lines that fit `width`, shrinking from `size` toward 20 px if it won't fit in `max` lines (by an average glyph width). */
 export function fit(text: string, size: number, width: number, max = 2): { lines: string[]; size: number } {
   for (;; size -= 2) {
     const per = Math.floor(width / (size * 0.55)), lines: string[] = [];
@@ -47,7 +47,7 @@ export function fit(text: string, size: number, width: number, max = 2): { lines
       if (lines.length && `${lines.at(-1)} ${w}`.length <= per) lines[lines.length - 1] += ` ${w}`;
       else lines.push(w);
     }
-    if ((lines.length <= max && lines.every(l => l.length <= per)) || size <= 18) {
+    if ((lines.length <= max && lines.every(l => l.length <= per)) || size <= 20) {
       const kept = lines.slice(0, max);
       if (lines.length > max || kept[max - 1]?.length > per) kept[kept.length - 1] = `${kept.at(-1)!.slice(0, per - 1).trimEnd()}…`;
       return { lines: kept, size };
@@ -58,7 +58,7 @@ const lead = (t: { lines: string[]; size: number }) => t.lines.length * t.size *
 const text = (x: number, y: number, t: { lines: string[]; size: number }, fill: string, anchor = 'middle') =>
   `<text x="${x}" y="${y}" fill="${fill}" font-size="${t.size}" text-anchor="${anchor}">${t.lines.map((l, i) => `<tspan x="${x}" dy="${i ? t.size * 1.2 : 0}">${esc(l)}</tspan>`).join('')}</text>`;
 const number = (x: number, y: number, it: Item, size: number, fill: string, anchor = 'middle') =>
-  `<text x="${x}" y="${y}" fill="${fill}" font-size="${size}" text-anchor="${anchor}">${esc(it.value ?? '')}${it.unit ? `<tspan dx="${Math.round(size * 0.15)}" fill="var(--ink-dim)" font-size="${Math.max(18, Math.round(size * 0.36))}">${esc(it.unit)}</tspan>` : ''}</text>`;
+  `<text x="${x}" y="${y}" fill="${fill}" font-size="${size}" text-anchor="${anchor}">${esc(it.value ?? '')}${it.unit ? `<tspan dx="${Math.round(size * 0.15)}" fill="var(--ink-dim)" font-size="${Math.max(20, Math.round(size * 0.36))}">${esc(it.unit)}</tspan>` : ''}</text>`;
 /** The largest size, up to `size`, at which each of these numbers with its unit fits `width`: siblings share one size. */
 const numberSize = (items: Item[], size: number, width: number) =>
   Math.floor(Math.min(size, ...items.filter(it => it.value).map(it => width / (0.55 * (it.value!.length + 0.45 * (it.unit?.length ?? 0) + 0.3)))));

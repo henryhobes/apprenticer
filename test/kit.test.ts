@@ -15,7 +15,7 @@ test('text that is too long for its box shrinks, then is cut with an ellipsis', 
   assert.deepEqual(fit('Supported load', 30, 600), { lines: ['Supported load'], size: 30 });
   const cut = fit('Equity, business cash, or corporate borrowing before any lease is signed', 22, 200, 1);
   assert.equal(cut.lines.length, 1);
-  assert.ok(cut.lines[0].endsWith('…') && cut.size >= 18);
+  assert.ok(cut.lines[0].endsWith('…') && cut.size >= 20);
 });
 
 test('a chain builds box by box with cues, merges two inputs into one box, and lights one thing gold', () => {

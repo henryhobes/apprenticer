@@ -1,0 +1,73 @@
+<!-- One database doing two jobs. Up from the start of every session: Sam's picture of today, from the design doc. The web app and the job workers both lean on the primary Postgres, lit gold, with "70% CPU" (its month-end peak) inside it; the workers' polling line pulses into it for a few seconds. Under the web app, "2.8 s", its p99 during the 1 November billing run; under the workers, "3 h 10 min", the backlog that run built up. Everything is up at once: it has no cue words, and Dana never describes it; she asks about it. "set proposed" turns it into Sam's proposal on the same picture: the polling line fades, a managed queue (SQS) draws in under the database, the web app sends jobs to it and the workers take them from it, the queue turns gold, the 70% goes, the database shrinks to the size of the other boxes, and the two month-end numbers become the doc's targets, in grey: under 500 ms and under 15 min. Make that move when Sam starts on the proposal, and say what changed as Dana would ("so the jobs leave the database entirely"). "set today" puts today's picture back. -->
+<style>
+  .box{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+  .lbl{fill:var(--ink);font-size:28px}
+  .small{fill:var(--ink-dim);font-size:22px}
+  .big{fill:var(--ink);font-size:64px}
+  .unit{fill:var(--ink-dim);font-size:26px}
+  .fade{transition:opacity .5s var(--ease)}
+  #db{fill:rgba(217,164,65,.12);stroke:var(--gold);stroke-width:3;transition:fill .5s,stroke .5s,stroke-width .5s,y .5s var(--ease),height .5s var(--ease)}
+  #dblabel{transition:transform .5s var(--ease)}
+  #cpu{fill:var(--gold)}
+  .target .big{fill:var(--ink-dim)}
+  .later{opacity:0}
+  body.proposed .later{opacity:1}
+  body.proposed .now{opacity:0}
+  body.proposed #db{fill:var(--panel);stroke:var(--ink);stroke-width:2;y:140px;height:130px}
+  body.proposed #dblabel{transform:translateY(35px)}
+  #queue{fill:rgba(217,164,65,.12);stroke:var(--gold);stroke-width:3}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0 40)">
+  <!-- Today: both lean on the primary. -->
+  <rect class="box" x="60" y="140" width="260" height="130" rx="6"/>
+  <text class="lbl" x="190" y="215" text-anchor="middle">Web app</text>
+  <rect id="db" x="455" y="120" width="290" height="170" rx="6"/>
+  <text class="lbl" id="dblabel" x="600" y="180" text-anchor="middle">Primary Postgres</text>
+  <text id="cpu" class="now fade" x="600" y="254" text-anchor="middle" font-size="56">70%<tspan class="unit" dx="10">CPU</tspan></text>
+  <rect class="box" x="880" y="140" width="260" height="130" rx="6"/>
+  <text class="lbl" x="1010" y="215" text-anchor="middle">Job workers</text>
+  <path d="M328 205 H445 M437 197 L447 205 L437 213" fill="none" stroke="var(--ink-dim)" stroke-width="2"/>
+  <g class="now fade">
+    <path class="flow" d="M872 205 H757" fill="none" stroke="var(--ink-dim)" stroke-width="3"/>
+    <path d="M763 197 L753 205 L763 213" fill="none" stroke="var(--ink-dim)" stroke-width="2"/>
+    <text class="small" x="812" y="186" text-anchor="middle">polling</text>
+  </g>
+  <!-- Month-end, each number under the thing it measures. -->
+  <g class="now fade">
+    <text class="big" x="190" y="380" text-anchor="middle">2.8<tspan class="unit" dx="10">s</tspan></text>
+    <text class="small" x="190" y="420" text-anchor="middle">web p99, 1 Nov</text>
+    <text class="big" x="1010" y="380" text-anchor="middle">3<tspan class="unit" dx="8">h</tspan><tspan dx="16">10</tspan><tspan class="unit" dx="8">min</tspan></text>
+    <text class="small" x="1010" y="420" text-anchor="middle">job backlog, 1 Nov</text>
+  </g>
+  <!-- The proposal: the jobs leave the database. -->
+  <g class="later fade">
+    <rect id="queue" x="455" y="470" width="290" height="130" rx="6"/>
+    <text class="lbl" x="600" y="530" text-anchor="middle">Managed queue</text>
+    <text class="small" x="600" y="566" text-anchor="middle">SQS</text>
+    <path class="route" pathLength="1" d="M328 250 C400 250 380 535 445 535" fill="none" stroke="var(--ink-dim)" stroke-width="2"/>
+    <path d="M437 527 L447 535 L437 543" fill="none" stroke="var(--ink-dim)" stroke-width="2"/>
+    <path class="route" pathLength="1" d="M753 535 C820 535 800 250 870 250" fill="none" stroke="var(--ink-dim)" stroke-width="2"/>
+    <path d="M862 242 L872 250 L862 258" fill="none" stroke="var(--ink-dim)" stroke-width="2"/>
+    <g class="target">
+      <text class="big" x="190" y="380" text-anchor="middle"><tspan class="unit" dx="-10">under</tspan><tspan dx="10">500</tspan><tspan class="unit" dx="10">ms</tspan></text>
+      <text class="small" x="190" y="420" text-anchor="middle">target p99</text>
+      <text class="big" x="1010" y="380" text-anchor="middle"><tspan class="unit" dx="-10">under</tspan><tspan dx="10">15</tspan><tspan class="unit" dx="10">min</tspan></text>
+      <text class="small" x="1010" y="420" text-anchor="middle">target backlog</text>
+    </g>
+  </g>
+</g></svg>
+<script>
+// Today's picture, or Sam's proposal on the same picture. Every number is the design doc's.
+const routes = [...document.querySelectorAll('.route')];
+routes.forEach(r => { r.style.strokeDasharray = '1'; r.style.strokeDashoffset = '1'; });
+function proposed(on) {
+  if (document.body.classList.contains('proposed') === on) return;
+  document.body.classList.toggle('proposed', on);
+  if (on) routes.forEach((r, i) => r.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 900, delay: 300 + i * 250, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'forwards' }));
+}
+addEventListener('message', e => {
+  const s = String(e.data?.set ?? '').trim().toLowerCase();
+  if (s === 'proposed') proposed(true);
+  if (s === 'today') proposed(false);
+});
+</script>

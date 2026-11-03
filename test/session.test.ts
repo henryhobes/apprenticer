@@ -119,6 +119,12 @@ test('saving notes rewrites them from the transcript, keeps the recap, and leave
   assert.equal(readFileSync(join(a.dir, 'notes/memory.md'), 'utf8'), '<!-- What I know. -->\n\nLikes short turns.\n');
   assert.equal(readFileSync(join(a.session, 'notes-before/memory.md'), 'utf8'), '<!-- What I know. -->\n\nold\n');
 
+  // A rehearsal's result stays in its session folder.
+  const r = recorded(long);
+  assert.equal((await saveNotes(r.dir, r.session, false)).notes, 'preview');
+  assert.equal(readFileSync(join(r.dir, 'notes/memory.md'), 'utf8'), '<!-- What I know. -->\n\nold\n');
+  assert.equal(readFileSync(join(r.session, 'notes-after/memory.md'), 'utf8'), '<!-- What I know. -->\n\nLikes short turns.\n');
+
   responses.create = async () => { throw new Error('the model must not be called'); };
   const b = recorded('User: Hello?\nMind: Hi.');
   assert.equal((await saveNotes(b.dir, b.session)).notes, 'skipped');
