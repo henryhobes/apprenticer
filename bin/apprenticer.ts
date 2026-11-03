@@ -4,15 +4,16 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { config, requireKey } from '../src/config.ts';
+import { config, packageFile, requireKey } from '../src/config.ts';
 import { saveNotes } from '../src/session.ts';
-import { createApp } from '../src/server.ts';
+import { createApp, createPreviewApp } from '../src/server.ts';
 import { simulate } from '../src/sim.ts';
 import { DEFAULT_MEMORY, openSpace, readMeta, readSpace, sessionDirs } from '../src/space.ts';
 
 const USAGE = `apprenticer <dir>                    serve the space in <dir> on localhost and open it
 apprenticer init <dir>               start a new space
 apprenticer check <dir>              check a space's files (no key, no model)
+apprenticer preview <dir>            serve and open only the visuals preview (no key)
 apprenticer notes <dir> [session]    save the notes for a session whose notes pass failed
 apprenticer sim <dir> --user <file.md> [--turns 10] [--out file] [--draw] [--notes | --no-notes] [--tier default]
                                      rehearse the space in text against a simulated user`;
@@ -36,7 +37,7 @@ function init(path: string) {
   make('visuals/.gitkeep', '');
   make('sources/.gitkeep', '');
   make('.gitignore', 'sessions/\n');
-  const agents = new URL('../template/AGENTS.md', import.meta.url); // the guide a coding agent follows to build the space
+  const agents = packageFile('template/AGENTS.md'); // the guide a coding agent follows to build the space
   if (existsSync(agents)) { make('AGENTS.md', readFileSync(agents)); make('CLAUDE.md', '@AGENTS.md\n'); }
   console.log(`\nOpen ${path} in your coding agent and tell it what you want to work on: it writes the brief, visuals and sources.\nThen: apprenticer ${path}`);
 }
@@ -59,12 +60,12 @@ function listen(fetch: (r: Request) => Response | Promise<Response>, port: numbe
   });
 }
 
-async function serveSpace(path: string, open: boolean) {
-  const space = openSpace(path);
-  await requireKey();
+async function serveSpace(path: string, open: boolean, preview = false) {
+  const space = preview ? readSpace(path) : openSpace(path); // a preview writes nothing and needs no key
+  if (!preview) await requireKey();
   [...space.errors.map(e => `error: ${e}`), ...space.warnings.map(w => `warning: ${w}`)].forEach(m => console.warn(m));
-  const port = await listen(createApp(space.dir).fetch, config.port), url = `http://localhost:${port}`;
-  console.log(`Apprenticer: ${path} ("${space.title}") → ${url}`);
+  const port = await listen((preview ? createPreviewApp(space.dir) : createApp(space.dir)).fetch, config.port), url = `http://localhost:${port}${preview ? '/preview' : ''}`;
+  console.log(`Apprenticer${preview ? ' preview' : ''}: ${path} ("${space.title}") → ${url}`);
   if (open) {
     const [cmd, ...args] = process.platform === 'darwin' ? ['open'] : process.platform === 'win32' ? ['cmd', '/c', 'start', ''] : ['xdg-open'];
     spawn(cmd, [...args, url], { stdio: 'ignore', detached: true }).on('error', () => {}).unref();
@@ -85,10 +86,11 @@ try {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     user: { type: 'string' }, turns: { type: 'string' }, out: { type: 'string' }, tier: { type: 'string' }, help: { type: 'boolean', short: 'h' },
     draw: { type: 'boolean' }, notes: { type: 'boolean' }, 'no-notes': { type: 'boolean' }, 'no-open': { type: 'boolean' } } });
-  const [cmd, dir, extra] = ['init', 'check', 'notes', 'sim'].includes(positionals[0]) ? positionals : ['serve', ...positionals];
+  const [cmd, dir, extra] = ['init', 'check', 'notes', 'sim', 'preview'].includes(positionals[0]) ? positionals : ['serve', ...positionals];
   if (values.help || !dir) console.log(USAGE);
   else if (cmd === 'init') init(dir);
   else if (cmd === 'check') check(dir);
+  else if (cmd === 'preview') await serveSpace(dir, !values['no-open'], true);
   else if (cmd === 'notes') await notes(dir, extra);
   else if (cmd === 'sim') {
     if (!values.user) throw new Error('sim needs --user <file.md>: who the simulated user is, how they talk, what they will do.');

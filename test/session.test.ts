@@ -4,9 +4,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import * as board from '../src/board.ts';
-import { openai } from '../src/config.ts';
+import { meter, openai, spend, tokensUsd } from '../src/config.ts';
 import { alreadyAnswered, costUsd, mindController, saveNotes, tally, transcriptOf, turnsFrom, unanswered } from '../src/session.ts';
-import { newSessionDir, readMeta, readSpace, writeMeta } from '../src/space.ts';
+import { newSessionDir, readMeta, readSpace, spentToday, writeMeta } from '../src/space.ts';
 
 const user = (delta: string, start_ms: number) => ({ type: 'session.input_transcript.delta', delta, start_ms });
 const voice = (delta: string, start_ms: number) => ({ type: 'session.output_transcript.delta', delta, start_ms });
@@ -53,12 +53,21 @@ test('a late delegation for words the watchdog already had answered starts no se
   assert.equal(alreadyAnswered(said.slice(0, 1), 0, -1), false); // no turn has finished yet
 });
 
-test('voice minutes and web searches are what a session costs', () => {
+test('voice minutes and web searches are what the voice costs, and the mind\'s tokens are priced by tier, cached input and output', () => {
   const t = { seconds: 0, searches: 0 };
   assert.equal(tally(t, { type: 'session.usage.updated', usage: { seconds: 600 } }), true);
   assert.equal(tally(t, { type: 'response.event', event: { type: 'response.output_item.done', item: { type: 'web_search_call' } } }), true);
   assert.equal(tally(t, { type: 'session.output_transcript.delta' }), false);
   assert.equal(costUsd(t), 10 * 0.05 + 0.01);
+  // 2,000 fresh and 8,000 cached input tokens and 2,000 output ($2, $0.10 and $10 a million at Standard), served on Ultrafast (6x).
+  const mind = { usage: { input_tokens: 10_000, output_tokens: 2_000, input_tokens_details: { cached_tokens: 8_000 } }, service_tier: 'ultrafast' };
+  assert.ok(Math.abs(tokensUsd(mind) - 0.1488) < 1e-9);
+  assert.ok(Math.abs(tokensUsd({ ...mind, service_tier: 'default' }) - 0.0248) < 1e-9);
+  assert.equal(tokensUsd({}), 0);
+  // The mind's own searches are billed per search on top of its tokens.
+  const before = spend.usd;
+  meter({ ...mind, output: [{ type: 'message' }, { type: 'web_search_call' }] });
+  assert.ok(Math.abs(spend.usd - before - (0.1488 + 0.01)) < 1e-9);
 });
 
 async function until(check: () => boolean) { for (let i = 0; i < 100 && !check(); i++) await new Promise(r => setTimeout(r, 20)); assert.ok(check(), 'timed out'); }
@@ -70,11 +79,12 @@ test('the mind opens the session itself, then answers when the voice hands the p
   responses.create = async (params: any) => {
     prompts.push(params.input[1].content);
     const text = turns[prompts.length - 1];
-    return (async function* () { yield { type: 'response.output_text.delta', delta: text }; })();
+    return (async function* () { yield { type: 'response.output_text.delta', delta: text }; yield { type: 'response.completed', response: { usage: { input_tokens: 1000, output_tokens: 100 }, service_tier: 'ultrafast' } }; })();
   };
   const dir = tmpSpace({ 'brief.md': '# Drill\n\nRun an incident drill.', 'visuals/01-today.html': '<!-- Today. Opens the drill. -->\n<svg></svg>' });
   const sent: any[] = [], logged: any[] = [];
   board.start();
+  const spent0 = spend.usd;
   const mind = mindController(readSpace(dir), e => sent.push(e), e => logged.push(e));
   t.after(() => mind.handle({ type: 'session.closed' }));
 
@@ -85,6 +95,8 @@ test('the mind opens the session itself, then answers when the voice hands the p
   assert.match(sent[0].content, /^Welcome back\./);
   assert.ok(!sent[0].content.includes('BOARD'));
   assert.match(prompts[0], /nobody has spoken yet/);
+  assert.match(prompts[0], /^Session time: 0 min, turn 1\./);
+  assert.ok(Math.abs(spend.usd - spent0 - (1000 * 2 + 100 * 10) / 1e6 * 6) < 1e-12); // the turn's tokens are counted in what the session costs
   assert.deepEqual(logged.find(e => e.type === 'mind.turn').board, [{ verb: 'show', arg: '01-today' }]);
 
   // The voice says it, the person answers, the voice hands over: the mind replies under that delegation.
@@ -94,7 +106,7 @@ test('the mind opens the session itself, then answers when the voice hands the p
   await until(() => sent.length > 1);
   assert.equal(sent[1].delegation_id, 'd1');
   assert.match(sent[1].content, /^Good, that is the failure mode\./);
-  assert.match(prompts[1], /User: The cache went cold\./);
+  assert.match(prompts[1], /Session time: 0 min, turn 2\.[\s\S]*User: The cache went cold\./);
   assert.equal(mind.transcript(), 'Mind: Welcome back.\nUser: The cache went cold.\n\nOn the board, in order (never spoken):\n- showed: 01-today (with the turn that begins "Welcome back. Last time we got as far…")');
 });
 
@@ -109,12 +121,15 @@ function recorded(transcript: string) {
 test('saving notes rewrites them from the transcript, keeps the recap, and leaves a barely spoken session alone', async t => {
   const responses = openai().responses as any, create = responses.create;
   t.after(() => { responses.create = create; });
-  responses.create = async () => ({ id: 'r', status: 'completed', output_text: JSON.stringify({ recap: { covered: ['pacing'], open: 'next steps' }, notes: { memory: 'Likes short turns.' } }) });
+  responses.create = async () => ({ id: 'r', status: 'completed', output_text: JSON.stringify({ recap: { covered: ['pacing'], open: 'next steps' }, notes: { memory: 'Likes short turns.' } }),
+    usage: { input_tokens: 20_000, output_tokens: 1_000 }, service_tier: 'default' });
   const long = `User: ${'I would like to work on pacing today and on how I answer questions. '.repeat(3)}\nMind: Sure.`;
   const a = recorded(long);
   const meta = await saveNotes(a.dir, a.session);
   assert.deepEqual(meta.recap, { covered: ['pacing'], open: 'next steps' });
   assert.equal(meta.notes, 'updated');
+  assert.ok(Math.abs(meta.cost_usd - (0.4 + 0.05)) < 1e-9); // the notes pass's tokens ($2 and $10 a million) are part of the session's cost, and so of today's
+  assert.ok(Math.abs(spentToday(a.dir) - 0.45) < 1e-9);
   assert.deepEqual(readMeta(a.session), meta);
   assert.equal(readFileSync(join(a.dir, 'notes/memory.md'), 'utf8'), '<!-- What I know. -->\n\nLikes short turns.\n');
   assert.equal(readFileSync(join(a.session, 'notes-before/memory.md'), 'utf8'), '<!-- What I know. -->\n\nold\n');

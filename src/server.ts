@@ -3,21 +3,29 @@ import { stream } from 'hono/streaming';
 import { readFileSync } from 'node:fs';
 import type OpenAI from 'openai';
 import * as board from './board.ts';
-import { config, openai } from './config.ts';
+import { config, openai, packageFile } from './config.ts';
 import { previewPage } from './preview.ts';
 import { runSession, voiceSession } from './session.ts';
 import { lastRecap, openSpace, readSpace, spentToday } from './space.ts';
 
-export const page = () => readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+export const page = () => readFileSync(packageFile('public/index.html'), 'utf8');
+
+/**
+ * Every visual of the space on its own board, to check them without a session; read afresh each time.
+ * Only this, and no key: what `apprenticer preview` serves. On localhost only, with no login: this is for the
+ * one person at this computer, and refusing any other Host keeps a web page elsewhere from reaching it through DNS rebinding.
+ */
+export function createPreviewApp(dir: string) {
+  const app = new Hono();
+  app.use(async (c, next) => /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(c.req.header('host') ?? '') ? next() : c.text('not found', 404));
+  app.get('/preview', c => c.html(previewPage(readSpace(dir), page())));
+  return app;
+}
 
 /** The app for one space, on localhost only: the page, the WebRTC handshake, the board stream and the visuals preview. `run` is the session, replaced in tests. */
 export function createApp(dir: string, client: OpenAI = openai(), run = runSession) {
-  const app = new Hono();
+  const app = createPreviewApp(dir);
   let busy = false; // a session, and then the saving of its notes, is under way: a new one would start on stale notes
-
-  // No key and no login: this is for the one person at this computer. Refusing any other Host also
-  // keeps a web page elsewhere from reaching it through DNS rebinding.
-  app.use(async (c, next) => /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(c.req.header('host') ?? '') ? next() : c.text('not found', 404));
 
   app.get('/', c => c.html(page()));
   app.get('/api/space', c => { const space = readSpace(dir); return c.json({ title: space.title, dir: space.dir, last: lastRecap(space.dir) }); });
@@ -53,9 +61,6 @@ export function createApp(dir: string, client: OpenAI = openai(), run = runSessi
       unsubscribe();
     });
   });
-
-  // Every visual of the space on its own board, to check them without a session; read afresh each time.
-  app.get('/preview', c => c.html(previewPage(readSpace(dir), page())));
 
   return app;
 }

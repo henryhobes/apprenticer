@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { LiveCreateParams } from 'openai/resources/live/live';
 import WebSocket from 'ws';
 import * as board from './board.ts';
-import { LIVE_USD_PER_MINUTE, WEB_SEARCH_USD, config, openai } from './config.ts';
+import { LIVE_USD_PER_MINUTE, WEB_SEARCH_USD, config, openai, spend } from './config.ts';
 import { type Turn, localDate, mindTurn, notesPass, renderTurns } from './mind.ts';
 import { type Meta, type Space, newSessionDir, openSpace, readMeta, readSpace, writeMeta, writeNotes } from './space.ts';
 
@@ -80,10 +80,10 @@ export function turnsFrom(fragments: Fragment[]): Turn[] {
   return turns.map(t => ({ ...t, text: t.text.replace(/\s+/g, ' ').trim() })).filter(t => t.text);
 }
 
-const did: Record<board.BoardCommand['verb'], string> = { show: 'showed', draw: 'drew', keep: '', ask: 'wrote the question', term: 'wrote above the board', set: 'changed the visual' };
+const did: Record<board.BoardCommand['verb'], string> = { show: 'showed', draw: 'drew', keep: '', clear: 'cleared the board', ask: 'wrote the question', term: 'wrote above the board', set: 'changed the visual' };
 /** What a turn put on the board, one line each, for the transcript: the notes pass can't know what they saw from the speech alone. */
 export const boardLines = (commands: board.BoardCommand[], turn: string) => commands.filter(c => did[c.verb])
-  .map(c => `- ${did[c.verb]}: ${c.arg} (with the turn that begins "${turn.split(/\s+/).slice(0, 8).join(' ')}…")`);
+  .map(c => `- ${did[c.verb]}${c.arg && `: ${c.arg}`} (with the turn that begins "${turn.split(/\s+/).slice(0, 8).join(' ')}…")`);
 /** The session as text: what was said, then what was on the board. */
 export const transcriptOf = (turns: Turn[], boardLog: string[]) => [renderTurns(turns), boardLog.length && `On the board, in order (never spoken):\n${boardLog.join('\n')}`].filter(Boolean).join('\n\n');
 
@@ -109,6 +109,7 @@ export function alreadyAnswered(fragments: Fragment[], afterMs: number, answered
  * sideband. Every turn is logged as a `mind.turn` event. The session opens when `handle` gets `{ type: 'attached' }`.
  */
 export function mindController(space: Space, send: (event: object) => void, log: (event: object) => void) {
+  const started = Date.now();
   const fragments: Fragment[] = [];
   const boardLog: string[] = [];
   const userCount = () => fragments.filter(f => f.role === 'User').length;
@@ -163,13 +164,13 @@ export function mindController(space: Space, send: (event: object) => void, log:
     const run: Run = { id: null, live: false, held: [], user: userCount(), abort: new AbortController(), started: Date.now(), liveAt: 0, firstSpeechMs: null, done: null, board: [], continues, visual: null };
     turn = run;
     mindTurn(space, turnsFrom(fragments), {
-      signal: run.abort.signal, goOn: continues,
+      signal: run.abort.signal, goOn: continues, elapsedMs: Date.now() - started,
       onSpeech: text => run.live ? speak(run, text) : run.held.push(text),
       onLookup: what => log({ type: 'mind.lookup', delegation_id: run.id, what }),
       board: board.connected() ? { instructions: board.boardInstructions(space.visuals), onScreen: board.onScreen() } : undefined,
       // The visual goes up as the turn starts being spoken, so it's there when they hear about it. A
       // show of an id that isn't a prepared visual waits for the words, which it's drawn from (board.apply).
-      onVisual: c => { if (c.verb === 'draw' || space.visuals.some(v => v.id === c.arg)) { run.visual = c; if (run.firstSpeechMs !== null) putUp(run); } },
+      onVisual: c => { if (c.verb !== 'show' || space.visuals.some(v => v.id === c.arg)) { run.visual = c; if (run.firstSpeechMs !== null) putUp(run); } },
       onBoard: commands => { run.board = commands; },
     }).then(text => {
       if (turn !== run) return;
@@ -264,7 +265,9 @@ export async function saveNotes(dir: string, sessionDir: string, apply = true): 
   if (spoken < 20) meta.notes = 'skipped'; // no sound, say: not a session worth remembering
   else {
     const space = readSpace(dir), started = new Date(meta.started_at); // read again: they may have edited the notes since
+    const before = spend.usd;
     const { recap, notes } = await notesPass(space, transcript, `${localDate(started)} ${started.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`);
+    meta.cost_usd += spend.usd - before; // the pass costs tokens too
     writeNotes(space, notes, sessionDir, apply);
     Object.assign(meta, { recap, notes: apply ? 'updated' : 'preview' });
   }
@@ -278,7 +281,8 @@ export function runSession(dir: string, sessionId: string): Promise<void> {
   const meta: Meta = { id: sessionId, started_at: new Date(started).toISOString(), cost_usd: 0 };
   writeMeta(sessionDir, meta);
   board.start(join(sessionDir, 'drawings'));
-  const usage: Tally = { seconds: 0, searches: 0 };
+  const usage: Tally = { seconds: 0, searches: 0 }, spent0 = spend.usd;
+  const cost = () => costUsd(usage) + spend.usd - spent0; // voice, searches and the mind's tokens
   const log = (event: object) => appendFileSync(join(sessionDir, 'events.jsonl'), JSON.stringify({ ...event, received_at: Date.now() }) + '\n');
   const hangup = () => openai().live.sessions.hangup(sessionId).catch(() => {});
   let ws: WebSocket, closed = false, tries = 0, opened = false;
@@ -297,10 +301,11 @@ export function runSession(dir: string, sessionId: string): Promise<void> {
     if (event.type === 'session.closed') closed = true;
     mind.handle(event);
     if (event.type === 'error' || event.type === 'transport.failed') console.error(`[${sessionId}] ${event.type}`, event.error);
-    if (tally(usage, event)) {
-      meta.cost_usd = costUsd(usage);
+    const changed = tally(usage, event), usd = cost(); // the mind's tokens move the cost between sideband events, which keep coming
+    if (changed || usd !== meta.cost_usd) {
+      meta.cost_usd = usd;
       writeMeta(sessionDir, meta);
-      board.push({ type: 'cost', usd: meta.cost_usd });
+      board.push({ type: 'cost', usd });
     }
   }
 
@@ -308,12 +313,13 @@ export function runSession(dir: string, sessionId: string): Promise<void> {
     async function finish() {
       timers.forEach(clearTimeout);
       if (!closed) { hangup(); mind.handle({ type: 'session.closed' }); } // we lost the sideband for good; don't leave the session (or its board) running untracked
-      Object.assign(meta, { ended_at: new Date().toISOString(), duration_s: Math.round((Date.now() - started) / 1000), cost_usd: costUsd(usage) });
+      Object.assign(meta, { ended_at: new Date().toISOString(), duration_s: Math.round((Date.now() - started) / 1000), cost_usd: cost() });
       writeFileSync(join(sessionDir, 'transcript.md'), mind.transcript() + '\n');
       writeMeta(sessionDir, meta);
       console.log(`[${sessionId}] ended; saving notes`);
       try {
         const saved = await saveNotes(dir, sessionDir);
+        board.push({ type: 'cost', usd: saved.cost_usd });
         board.push({ type: 'recap', ...saved.recap, skipped: saved.notes === 'skipped' });
         console.log(`[${sessionId}] notes ${saved.notes}`);
       } catch (err) {

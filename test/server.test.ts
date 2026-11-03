@@ -4,7 +4,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import * as board from '../src/board.ts';
-import { createApp } from '../src/server.ts';
+import { createApp, createPreviewApp } from '../src/server.ts';
 import { writeMeta } from '../src/space.ts';
 
 const local = { headers: { host: 'localhost:8787' } };
@@ -36,6 +36,14 @@ test('the page, the space and the preview are served to localhost; any other hos
   assert.equal((await app.request('/', { headers: { host: 'evil.example' } })).status, 404);
   assert.equal((await app.request('/api/session', { method: 'POST', headers: { host: 'evil.example:8787' } })).status, 404);
   assert.match(await (await createApp(tmpSpace({ 'brief.md': '# Empty' }), {} as any).request('/preview', local)).text(), /no visuals yet/);
+});
+
+test('the preview app serves only the visuals preview, to localhost, and needs no client or key', async () => {
+  const app = createPreviewApp(tmpSpace({ 'brief.md': '# Coach\n\nCoach me.', 'visuals/01-steps.html': STEPS }));
+  assert.match(await (await app.request('/preview', local)).text(), /Three steps/);
+  for (const path of ['/', '/api/space', '/api/board']) assert.equal((await app.request(path, local)).status, 404, path);
+  assert.equal((await app.request('/api/session', { method: 'POST', ...local })).status, 404);
+  assert.equal((await app.request('/preview', { headers: { host: 'evil.example' } })).status, 404);
 });
 
 test('a session is created over WebRTC with the voice settings, one at a time until its notes are saved', async () => {

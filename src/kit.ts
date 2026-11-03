@@ -6,23 +6,24 @@
 type Colour = 'ink' | 'power' | 'money' | 'time' | 'cool';
 export interface Item { label: string; value: string | null; unit: string | null; sub: string | null; dim: boolean; colour: Colour; from: number[] | null; op: string | null }
 export interface Column { heading: string; dim: boolean; items: Item[] }
-export interface Spec { type: 'chain' | 'numbers' | 'compare' | 'calc' | 'split' | 'svg'; gold: string | null; note: string | null; items: Item[] | null; columns: Column[] | null; svg: string | null }
+export interface Spec { type: 'chain' | 'numbers' | 'compare' | 'calc' | 'split' | 'text' | 'svg'; gold: string | null; note: string | null; items: Item[] | null; columns: Column[] | null; svg: string | null }
 
-export const KIT = `You draw one visual for a live board beside a voice conversation: the person hears the speech while they look at it, so it shows what's easier to see than to hear (structure, scale, flow, a calculation) and never restates the speech. You don't draw it: you fill in one of these diagram types, and the board lays it out.
+export const KIT = `You draw one visual for a live board beside a voice conversation: the person hears the speech while they look at it, so it shows what's easier to see than to hear (structure, scale, flow, a calculation) and never restates the speech. Draw only what the request describes: no parts, steps, numbers, names, design or answers of your own, even when the subject or the speech suggests them. You don't draw it: you fill in one of these diagram types, and the board lays it out.
 - chain: things that lead to each other, left to right: a process, stages, money or load flowing. Each item is a box. It follows the item before it, unless from lists the earlier items that feed it ([] makes it a second starting point), so two inputs can merge into one box.
 - numbers: up to four numbers that are the point, side by side, big (40 couriers and 12 hubs; 12,000 against 4,500 hours; +12.1% cost, +8% speed): each item a value, unit and label.
 - compare: two columns side by side (observed against forecast, before and after, two options): a heading and up to four items each, an item being a short line (label) or a number with what it is (value, unit, label). Set dim on the one column that's forecast, uncertain or not established, if either is.
 - calc: a calculation landing on its result, one line per number: value and unit, label saying what it is, and op (+ − × ÷ ≈ =) on every line but the first.
 - split: a whole divided into its parts (a budget into its parts, a day into its activities): the first item is the whole, the rest its parts, each with its value.
+- text: when the request is only a question or a sentence, which has no parts to draw: one item whose label is those words exactly, whole (a few sentences at most).
 - svg: only for a physical thing (a machine, a floor plan, a site) or when nothing above fits; then write the fragment yourself, by the style guide below.
 
-Labels are nouns, one to four words, 28 characters at most. A value is the number alone ("40", "$30-50k", "7,700") and its unit goes in unit ("ms", "couriers"). sub is a few words of role or detail (36 characters), or null. At most five items. gold: the label (or compare heading) of the one thing to look at, or null for the natural one (a chain's end, a calculation's result). note: one short line for a caveat ("forecast, not observed"), or null. colour by meaning: power (energy, load, effort), money (money flowing), time (dates, schedules), cool (water, cooling, calm things), otherwise ink; dim for what's forecast, uncertain or not yet true. Use the real numbers, names and dates from the request and the speech, and drop what doesn't fit rather than cramming: one idea. Fields a type doesn't use are null (items, columns, svg; from and op outside chain and calc). Prefer the fewest parts that make the point: the fewer, the larger they're drawn.`;
+Labels are nouns, one to four words, 28 characters at most. A value is the number alone ("40", "$30-50k", "7,700") and its unit goes in unit ("ms", "couriers"). sub is a few words of role or detail (36 characters), or null. At most five items. gold: the label (or compare heading) of the one thing to look at, or null for the natural one (a chain's end, a calculation's result). note: one short line for a caveat ("forecast, not observed"), or null. colour by meaning: power (energy, load, effort), money (money flowing), time (dates, schedules), cool (water, cooling, calm things), otherwise ink; dim for what's forecast, uncertain or not yet true. Use the real numbers, names and dates the request gives (the speech is only for the order its parts come in), invent none, and drop what doesn't fit rather than cramming: one idea. Fields a type doesn't use are null (items, columns, svg; from and op outside chain and calc). Prefer the fewest parts that make the point: the fewer, the larger they're drawn.`;
 
 const ITEM = { type: 'object', additionalProperties: false, required: ['label', 'value', 'unit', 'sub', 'dim', 'colour', 'from', 'op'], properties: {
   label: { type: 'string' }, value: { type: ['string', 'null'] }, unit: { type: ['string', 'null'] }, sub: { type: ['string', 'null'] }, dim: { type: 'boolean' },
   colour: { type: 'string', enum: ['ink', 'power', 'money', 'time', 'cool'] }, from: { type: ['array', 'null'], items: { type: 'integer' } }, op: { type: ['string', 'null'] } } };
 export const SPEC_SCHEMA = { type: 'object', additionalProperties: false, required: ['type', 'gold', 'note', 'items', 'columns', 'svg'], properties: {
-  type: { type: 'string', enum: ['chain', 'numbers', 'compare', 'calc', 'split', 'svg'] }, gold: { type: ['string', 'null'] }, note: { type: ['string', 'null'] },
+  type: { type: 'string', enum: ['chain', 'numbers', 'compare', 'calc', 'split', 'text', 'svg'] }, gold: { type: ['string', 'null'] }, note: { type: ['string', 'null'] },
   items: { type: ['array', 'null'], items: ITEM, maxItems: 5 },
   columns: { type: ['array', 'null'], maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['heading', 'dim', 'items'],
     properties: { heading: { type: 'string' }, dim: { type: 'boolean' }, items: { type: 'array', items: ITEM, maxItems: 4 } } } },
@@ -234,6 +235,7 @@ export function describe(spec: Spec, html = render(spec)): string {
     const cols = spec.columns.slice(0, 2), g = goldIndex(cols.map(c => c.heading), spec.gold, cols.findIndex(c => !c.dim));
     return `two columns: ${cols.map((c, i) => `${['on the left', 'on the right'][i]}, "${c.heading}"${c.dim ? ' (dashed: not established)' : ''}: ${c.items.slice(0, 4).map(says).join('; ')}`).join('; ')}${g >= 0 ? `; in gold: ${cols[g].heading}` : ''}`;
   }
+  if (spec.type === 'text' && n) return `the words, as written: ${items[0].label}`;
   if (spec.type === 'svg' || !n) { // a hand drawing: its parts by their words, in the order they appear, each with where it is
     const parts = [...html.matchAll(/<g class="step"[^>]*>([\s\S]*?)<\/g>/g)].map(([, s]) => {
       const words = s.replace(/<[^>]+>/g, ' ').replace(/&#(\d+);/g, (_, c) => String.fromCharCode(c)).replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
@@ -255,6 +257,10 @@ export function describe(spec: Spec, html = render(spec)): string {
 /** The visual's HTML: a kit drawing laid out here, or the model's own SVG. */
 export function render(spec: Spec): string {
   if (spec.type === 'svg' || !(spec.type === 'compare' ? spec.columns?.length : spec.items?.length)) return spec.svg ?? '';
+  if (spec.type === 'text') { // the words, left-aligned and vertically centred
+    const words = fit(spec.items![0].label, 56, 1080, 6);
+    return `<svg viewBox="0 0 1200 750" width="1200" height="750">${step('', text(60, (750 - lead(words)) / 2 + words.size, words, 'var(--ink)', 'start'))}</svg>`;
+  }
   const parts = spec.type === 'compare' ? compare(spec.columns!, spec.gold)
     : spec.type === 'numbers' ? numbers(spec.items!.slice(0, 4), spec.gold)
     : spec.type === 'calc' ? calc(spec.items!, spec.gold)

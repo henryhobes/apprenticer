@@ -1,7 +1,7 @@
 import './setup.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { type Item, cues, fit, render } from '../src/kit.ts';
+import { type Item, cues, describe, fit, render } from '../src/kit.ts';
 
 const item = (label: string, more: Partial<Item> = {}): Item => ({ label, value: null, unit: null, sub: null, dim: false, colour: 'ink', from: null, op: null, ...more });
 const steps = (html: string) => [...html.matchAll(/<g class="step"(?: data-cue="([^"]*)")?>/g)].map(m => m[1] ?? '');
@@ -64,6 +64,15 @@ test("a comparison's gold falls on the column that isn't dim", () => {
     columns: [{ heading: 'Forecast', dim: true, items: [item('2027 additions')] }, { heading: 'Observed', dim: false, items: [item('40 campuses')] }] });
   const [, forecast, observed] = html.split('<g class="step"');
   assert.ok(!forecast.includes('var(--gold)') && observed.includes('var(--gold)'));
+});
+
+test('a question or a sentence is drawn as the words themselves, whole: no box, no gold, nothing added', () => {
+  const q = 'Walk me through how you would design a ledger service for a payments company, including idempotency and reconciliation.';
+  const spec = { type: 'text' as const, gold: null, note: null, columns: null, svg: null, items: [item(q)] };
+  const html = render(spec);
+  assert.equal(html.replace(/<\/tspan>/g, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(), q);
+  assert.ok(!html.includes('<rect') && !html.includes('var(--gold)'));
+  assert.equal(describe(spec, html), `the words, as written: ${q}`);
 });
 
 test("hand-written svg passes through; a spec with nothing to draw draws nothing", () => {

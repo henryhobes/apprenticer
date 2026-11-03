@@ -8,18 +8,20 @@
     "node": ">=24"
   },
   "bin": {
-    "apprenticer": "bin/apprenticer.ts"
+    "apprenticer": "dist/bin/apprenticer.js"
   },
   "files": [
-    "bin",
-    "src",
+    "dist",
     "public",
     "examples",
     "template"
   ],
   "scripts": {
+    "start": "node bin/apprenticer.ts",
     "test": "node --test test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",

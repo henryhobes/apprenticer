@@ -1,6 +1,6 @@
 import { STEPS, tmpSpace } from './setup.ts';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -42,4 +42,21 @@ test('serving needs a brief, and sim needs a user file', () => {
   assert.match(run(tmpSpace({}), '--no-open').stderr, /no brief\.md/);
   assert.match(run('sim', tmpSpace({ 'brief.md': '# x' })).stderr, /sim needs --user/);
   assert.match(run('--help').stdout, /apprenticer sim <dir>/);
+});
+
+test('preview serves only the visuals preview, with no API key', async () => {
+  const dir = tmpSpace({ 'brief.md': '# Good\n\nBe good.', 'visuals/a.html': STEPS });
+  const child = spawn(process.execPath, [bin, 'preview', dir, '--no-open'], { env: { ...process.env, OPENAI_API_KEY: '', PORT: '0' } });
+  try {
+    const url = await new Promise<string>((done, fail) => { child.stdout.on('data', d => { const m = /→ (\S+)/.exec(String(d)); if (m) done(m[1]); }); child.on('exit', () => fail(new Error('exited'))); });
+    assert.match(url, /\/preview$/);
+    assert.match(await (await fetch(url)).text(), /Three steps/);
+    assert.equal((await fetch(new URL('/', url))).status, 404);
+  } finally { child.kill(); }
+});
+
+test('a malformed MIND_PRICE is refused rather than turned into a mind that costs nothing', () => {
+  const result = spawnSync(process.execPath, [bin, 'check', tmpSpace({ 'brief.md': '# Good\n\nBe good.' })], { encoding: 'utf8', env: { ...process.env, MIND_PRICE: '2;0.1;10' } });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /MIND_PRICE is three numbers/);
 });

@@ -1,5 +1,6 @@
 import { STEPS, tmpSpace } from './setup.ts';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -79,6 +80,14 @@ test('the notes the mind rewrote go under their own comments, and the notes as t
   assert.equal(existsSync(join(dir, 'notes/c.md')), false);
   assert.equal(readFileSync(join(session, 'notes-before/a.md'), 'utf8'), '<!-- Alpha. -->\n\nold a\n');
   assert.deepEqual(readdirSync(join(dir, 'sessions')).length, 1);
+});
+
+test('sessions started in the same second, even by different processes, each get their own folder', async () => {
+  const dir = tmpSpace({ 'brief.md': BRIEF }), at = Date.now() + 700; // all six wait for the same instant, then ask at once
+  const code = `import { newSessionDir } from ${JSON.stringify(import.meta.resolve('../src/space.ts'))}; while (Date.now() < ${at}); console.log(newSessionDir(${JSON.stringify(dir)}))`;
+  const made = await Promise.all(Array.from({ length: 6 }, () => new Promise<string>(done => execFile(process.execPath, ['--input-type=module', '-e', code], (_err, out) => done(out.trim())))));
+  assert.equal(new Set(made).size, 6);
+  assert.ok(made.every(p => existsSync(p)));
 });
 
 test('a rehearsal writes the new notes into its own session folder and leaves notes/ alone', () => {

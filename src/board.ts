@@ -1,6 +1,6 @@
 import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { config, openai } from './config.ts';
+import { config, meter, openai } from './config.ts';
 import { KIT, SPEC_SCHEMA, describe, render } from './kit.ts';
 import type { Visual } from './space.ts';
 
@@ -10,9 +10,9 @@ import type { Visual } from './space.ts';
 // is told nothing about the board and the session runs on voice alone.
 
 /** A line like "BOARD: show 03-trip" in a turn: what to put on the person's screen. Never spoken. */
-export interface BoardCommand { verb: 'show' | 'draw' | 'keep' | 'ask' | 'term' | 'set'; arg: string }
-export const boardCommands = (text: string): BoardCommand[] => [...text.matchAll(/^\s*BOARD:\s*(show|draw|keep|ask|term|set)\b[ \t]*(.*)$/gim)]
-  .map(m => ({ verb: m[1].toLowerCase() as BoardCommand['verb'], arg: m[2].trim() })).filter(c => c.verb === 'keep' || c.arg);
+export interface BoardCommand { verb: 'show' | 'draw' | 'keep' | 'clear' | 'ask' | 'term' | 'set'; arg: string }
+export const boardCommands = (text: string): BoardCommand[] => [...text.matchAll(/^\s*BOARD:\s*(show|draw|keep|clear|ask|term|set)\b[ \t]*(.*)$/gim)]
+  .map(m => ({ verb: m[1].toLowerCase() as BoardCommand['verb'], arg: m[2].trim() })).filter(c => c.verb === 'keep' || c.verb === 'clear' || c.arg);
 /** The turn without its board lines, including one still being written. */
 export const withoutBoard = (text: string) => text.replace(/^[ \t]*BOARD:.*$/gim, '').trim();
 
@@ -55,33 +55,35 @@ export async function draw(request: string, opts: { said?: string } = {}): Promi
     reasoning: { effort: 'low' }, // medium drew busier pictures than low, not better ones
     service_tier: config.mindTier,
     input: [{ role: 'system', content: `${KIT}\n\n${STYLE}` }, { role: 'user', content: [
-      `Draw this: ${request}`,
-      opts.said && `What is being said while it's up:\n${opts.said}`,
+      `Draw this, and only this: ${request}`,
+      opts.said && `What is being said while it's up (only for the order its parts come in; take nothing from it into the drawing):\n${opts.said}`,
     ].filter(Boolean).join('\n\n') }],
     text: { format: { type: 'json_schema', name: 'diagram', schema: SPEC_SCHEMA, strict: true } },
   });
+  meter(res);
   const spec = JSON.parse(res.output_text), html = unfence(render(spec));
   if (!html) throw new Error(`nothing drawn: ${res.output_text.slice(0, 200)}`);
   return { html, looks: describe(spec, html) };
 }
 
 /** What the mind is told about the board while a page is open; added to its instructions. */
-export const boardInstructions = (bank: Visual[]) => `The person has a screen in front of them: a board you control, which they watch while you talk. You drive it with board lines, each on its own line and never spoken: the visual as the very first line of your turn, so it's up the moment they start hearing you; then any set lines; then your words; then ask and term at the very end.
+export const boardInstructions = (bank: Visual[]) => `The person has a screen in front of them: a board you control, which they watch while you talk. You drive it with board lines, each on its own line and never spoken: the turn's visual, if it has one, as the very first line of your turn, so it's up the moment they start hearing you; then any set lines; then your words; then ask and term at the very end.
 BOARD: show <id>  puts up one of the space's prepared visuals (below).
-BOARD: draw <what to draw>  has one drawn on the spot; it lands a couple of seconds into your turn.
+BOARD: draw <what to draw>  has one drawn on the spot; it lands a couple of seconds into your turn. It draws only what this line says and adds nothing, so put in the line everything it should show. Words alone are no drawing: a question to read is an ask.
 BOARD: keep  leaves the visual that's up.
+BOARD: clear  empties the board, which then shows the session title, as when nothing is up.
 BOARD: set <what>  changes a prepared visual that's up, as its note says ("set play", "set answer 600"); it moves as you start speaking, so say what it's doing ("watch the total"). Several in a row are fine.
 BOARD: set labels off  hides the labels of a visual that has them, for the person to name: each comes back as they say it. "set labels on" brings them all back.
-BOARD: ask <your question, as they should read it>  writes the question you've just asked on the board when you finish speaking.
+BOARD: ask <your question, as they should read it>  writes the question you've just asked on the board when you finish speaking. Optional: use it when seeing the question written helps them.
 BOARD: term <a term, name or number you've just used for the first time>: <what it is, in five words or so>  puts it in a line above the board, so they have its spelling and meaning after hearing it once.
 
-The board always shows the visual for the idea you're on. Start every turn with exactly one of show, draw or keep: show or draw when the idea changes or they ask to see something; keep when it hasn't (a verdict, a follow-up on the same point, a question and its answer). On your first turn nothing is up yet. End with an ask if you asked a question, and a term if you brought one in.
+The board is optional. A turn may start with show, draw, keep or clear, or have no board line at all, which keeps what's up. Use it when seeing something helps them more than hearing it, or they ask to see something, and otherwise leave it alone. Add a term line when you bring in a new term. On your first turn nothing is up, and you may leave it that way. The brief's instructions about the board, turn length, pacing and questions override these defaults.
 
 The prepared visuals' notes say when each belongs: follow them, and leave a visual for a tangent or a drawing, then come back. When you put a prediction or choice to the person, the visual stays as it is until they have answered: the move is the answer, so it comes in your next turn, with set, as you say what happened.
 
 They watch their screen closely, so a turn that puts up a new visual works through it, in the same few sentences: explain the idea while the board shows it, saying what's happening as it happens ("now it multiplies each of your numbers by the weight under it"). Its parts come up, or play, as you say the words its note gives, so say them in the order it gives, within that turn. Don't describe the picture or read its labels out ("on the left is...", "this shows..., left to right"): they can see where things are, and a tour of them explains nothing; your words say what things mean and why. A drawing you ask for shows the parts your request names, in the order it names them: name three or four, and name them in that order as you speak; you can't see which way it's laid out, so give the order ("first..., then...") rather than a direction. With keep, don't go over it again: build on the part you're on.
 
-Prefer a prepared visual when one fits; otherwise draw the idea: its structure, scale, flow, timeline or calculation, with its parts in the order you'll name them and the real numbers and names it needs.
+When you want a visual, prefer a prepared one that fits; otherwise draw the idea: its structure, scale, flow, timeline or calculation, with its parts in the order you'll name them and the real numbers and names it needs.
 
 The space's prepared visuals (id: title. What it shows, when it goes up, and how it moves):
 ${bank.length ? bank.map(v => `- ${v.id}: ${v.title}. ${v.when}${v.looks ? ` Looks: ${v.looks}.` : ''}`).join('\n') : '(none: draw what you need)'}`;
@@ -127,10 +129,16 @@ function term(text: string) {
   publish({ type: 'term', term: text });
 }
 
+/** An empty board, which the page shows as the session title; a drawing still coming is dropped. */
+function clear() {
+  screen = {}; drawn++;
+  publish({ type: 'clear' });
+}
+
 /** A session starts: a clean board. Drawings made during it are saved in `drawings` (a session folder's). */
 export function start(drawings = '') {
-  screen = {}; drawn++; recap = undefined; drawingsDir = drawings; // a drawing still coming from the last session is dropped
-  publish({ type: 'clear' });
+  recap = undefined; drawingsDir = drawings;
+  clear();
 }
 
 /** The mind's next turn starts being spoken: the question it asked is answered, so it goes. The page follows the words (`said`). */
@@ -166,7 +174,8 @@ export function apply(commands: BoardCommand[], spoken: string, bank: Visual[], 
         },
         err => ({ error: String(err) }),
       );
-    } else if (c.verb === 'ask') ask(c.arg);
+    } else if (c.verb === 'clear') clear();
+    else if (c.verb === 'ask') ask(c.arg);
     else if (c.verb === 'term') term(c.arg);
     else if (c.verb === 'set' && screen.visual) { screen.sets!.push(c.arg); publish({ type: 'set', arg: c.arg }); }
   }

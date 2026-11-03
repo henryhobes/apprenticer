@@ -95,11 +95,14 @@ export function writeNotes(space: Space, bodies: Record<string, string>, session
 
 // sessions/<local time>/ belongs to the runtime: events.jsonl, transcript.md, session.json, drawings/, notes-before/.
 const stamp = (d = new Date()) => `${d.toLocaleDateString('en-CA')}T${d.toLocaleTimeString('en-GB').replace(/:/g, '-')}`;
+/** A new session folder, named by the second it started; two starting in the same second (even in different processes) get a -2, -3... suffix, since mkdir without `recursive` fails if the folder exists. */
 export function newSessionDir(dir: string): string {
-  let path = join(dir, 'sessions', stamp());
-  for (let n = 2; existsSync(path); n++) path = join(dir, 'sessions', `${stamp()}-${n}`);
-  mkdirSync(path, { recursive: true });
-  return path;
+  mkdirSync(join(dir, 'sessions'), { recursive: true });
+  const name = stamp();
+  for (let n = 1; ; n++) {
+    const path = join(dir, 'sessions', n > 1 ? `${name}-${n}` : name);
+    try { mkdirSync(path); return path; } catch (err: any) { if (err.code !== 'EEXIST') throw err; }
+  }
 }
 export const sessionDirs = (dir: string) => names(join(dir, 'sessions'), /^\d{4}-/).map(f => join(dir, 'sessions', f));
 export const readMeta = (sessionDir: string): Meta | null => existsSync(join(sessionDir, 'session.json')) ? JSON.parse(readFileSync(join(sessionDir, 'session.json'), 'utf8')) : null;

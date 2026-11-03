@@ -1,6 +1,6 @@
 import type { ResponseCreateParamsNonStreaming } from 'openai/resources/responses/responses';
 import { type BoardCommand, boardCommands, withoutBoard } from './board.ts';
-import { config, openai } from './config.ts';
+import { config, meter, openai } from './config.ts';
 import type { Recap, Space } from './space.ts';
 
 // The mind: GPT-6.1 Sol writes every turn of a session, from the space's brief, its notes and its
@@ -20,6 +20,7 @@ export async function longResponse(params: ResponseCreateParamsNonStreaming, max
     res = await openai().responses.retrieve(res.id);
   }
   if (res.status !== 'completed') throw new Error(`model call ${res.status}: ${JSON.stringify(res.error ?? res.incomplete_details)}`);
+  meter(res);
   return stripCitations(res.output_text);
 }
 
@@ -49,9 +50,11 @@ Remember them. Use what they said earlier in this session and what your notes ho
 
 Be honest. Say facts the way you'd remember them, never as a citation. Never make a fact up. If something that matters is one you don't know or may have changed, reply with only LOOKUP: followed by what to find, and you'll get to search before answering.
 
-They decide when it ends. Never wrap up or talk about next time unless they say they're going; then close the way the brief says, or simply and warmly.
+They decide when it ends. Never wrap up or talk about next time unless they say they're going, or the brief sets a length and the session time (given with each turn) has reached it; then close the way the brief says, or simply and warmly.
 
-Turn-taking. A turn ends one of two ways: on a question for them, and you wait for the answer; or at the end of a point, and if they don't come in you are asked to go on a few seconds later. So never tack a question on just to hand over the turn, and don't ask permission to go on: if the next step is obvious, take it. Never ask about their reaction or your own clarity ("does that make sense?", "what did you take from that?").`;
+Follow the brief literally. Where it gives exact lines ("Noted. Next.") or rules (no recap, no hints), use and obey them as written, every turn. Where it defines a closing (feedback, a verdict), finish all of it before the goodbye, over as many turns as it takes.
+
+Turn-taking. A turn ends one of two ways: on a question for them, and you wait for the answer; or at the end of a point, and if they don't come in you are asked to go on a few seconds later. Ask at most one question a turn unless the brief says otherwise. Never tack a question on just to hand over the turn, and don't ask permission to go on: if the next step is obvious, take it. Never ask about their reaction or your own clarity ("does that make sense?", "what did you take from that?").`;
 
 /** The mind's whole instructions: stable first (protocol, brief, sources, notes), then the board's, so the start of every turn's prompt is the same and can be cached. */
 export function instructions(space: Space, board?: string): string {
@@ -76,11 +79,12 @@ const NEXT = {
  * The mind's next spoken turn, given the space and the conversation so far.
  * Streams: `onSpeech` gets the opening sentences as soon as they're written, so the voice can start
  * talking while the rest is still being written, then the rest; `onVisual` gets the turn's opening
- * board line (show or draw) as soon as it's written. Returns the whole turn, or WAIT.
+ * board line (show, draw or clear) as soon as it's written. Returns the whole turn, or WAIT.
  */
 export async function mindTurn(space: Space, turns: Turn[], opts: { effort?: 'low' | 'medium'; signal?: AbortSignal; goOn?: boolean; onLookup?: (what: string) => void; onSpeech?: (text: string) => void;
-  board?: { instructions: string; onScreen: string }; onVisual?: (command: BoardCommand) => void; onBoard?: (commands: BoardCommand[]) => void } = {}): Promise<string> {
+  elapsedMs?: number; board?: { instructions: string; onScreen: string }; onVisual?: (command: BoardCommand) => void; onBoard?: (commands: BoardCommand[]) => void } = {}): Promise<string> {
   const system = instructions(space, opts.board?.instructions);
+  const clock = `Session time: ${Math.floor((opts.elapsedMs ?? 0) / 60_000)} min, turn ${turns.filter(t => t.speaker === 'Mind').length + 1}.\n\n`;
   const screen = opts.board ? `On their screen now: ${opts.board.onScreen}.\n\n` : ''; // before the conversation, so it doesn't steer the next words
   let raw = '';
   const ask = async (extra: string, search: boolean) => {
@@ -89,18 +93,19 @@ export async function mindTurn(space: Space, turns: Turn[], opts: { effort?: 'lo
       reasoning: { effort: opts.effort ?? 'low' },
       service_tier: config.mindTier,
       ...(search ? { tools: [{ type: 'web_search' as const }] } : {}),
-      input: [{ role: 'system', content: system }, { role: 'user', content: `${screen}The conversation so far:\n${renderTurns(turns) || '(nothing yet)'}\n\n${extra}` }],
+      input: [{ role: 'system', content: system }, { role: 'user', content: `${clock}${screen}The conversation so far:\n${renderTurns(turns) || '(nothing yet)'}\n\n${extra}` }],
       stream: true,
     }, { signal: opts.signal });
     let text = '', spoken = 0, opened = false; // opened: the first line has been checked for the turn's visual
     const speakable = () => withoutBoard(stripCitations(text).replace(/^(?:Mind|You|User):\s*/i, ''));
     for await (const event of stream) {
+      if (event.type === 'response.completed') meter(event.response);
       if (event.type !== 'response.output_text.delta') continue;
       text += event.delta;
       if (!opened && /\n/.test(text.trimStart())) {
         opened = true;
         const [first] = boardCommands(text.trimStart().split('\n')[0]);
-        if (first && (first.verb === 'show' || first.verb === 'draw')) opts.onVisual?.(first);
+        if (first && ['show', 'draw', 'clear'].includes(first.verb)) opts.onVisual?.(first);
       }
       const t = speakable();
       if (!opts.onSpeech || /^\s*L(O(O(K(U(P)?)?)?)?)?$|^\s*LOOKUP/i.test(t) || /^\s*W(A(I(T)?)?)?$/.test(t)) continue; // a lookup request, or WAIT, is never spoken

@@ -40,12 +40,20 @@ test("the board line that opens a turn is reported as soon as it's written, and 
   assert.equal(await mindTurn(space(), [{ speaker: 'User', text: 'Show me.' }], opts), 'What you are seeing now is the chain from an order to the door, running left to right. It starts with the intake.');
   assert.deepEqual(events, ['draw The order chain: intake, picking, handoff', 'speech', 'speech', '2 board lines']); // the visual before any words
   assert.match(s.calls[0].input[0].content, /# THE BRIEF/);
-  assert.match(s.calls[0].input[1].content, /^The conversation so far:\nUser: Show me\./);
+  assert.match(s.calls[0].input[1].content, /^Session time: 0 min, turn 1\.\n\nThe conversation so far:\nUser: Show me\./);
   events.length = 0;
   const w = stream('WAIT.');
   t.after(w.restore);
   assert.equal(await mindTurn(space(), [{ speaker: 'Mind', text: 'Take your time.' }], { ...opts, goOn: true }), 'WAIT');
   assert.deepEqual(events, []);
+});
+
+test('every turn tells the mind how long the session has run and which turn it is writing', async t => {
+  const s = stream('Right.');
+  t.after(s.restore);
+  const turns = Array.from({ length: 26 }, (_, i) => ({ speaker: i % 2 ? 'User' as const : 'Mind' as const, text: 'Hm.' })); // 13 turns of the mind's so far
+  await mindTurn(space(), turns, { elapsedMs: 23.9 * 60_000 });
+  assert.ok(s.calls[0].input[1].content.startsWith('Session time: 23 min, turn 14.\n'));
 });
 
 test('a go-on turn on an empty conversation is the opening: the mind writes the first turn from the brief and notes', async t => {

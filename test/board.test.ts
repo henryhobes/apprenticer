@@ -6,7 +6,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import * as board from '../src/board.ts';
-import { boardCommands, withoutBoard } from '../src/board.ts';
+import { openai, spend } from '../src/config.ts';
+import { boardCommands, boardInstructions, withoutBoard } from '../src/board.ts';
 
 test("board lines are read from the end of a turn and never spoken", () => {
   const turn = "A queue is the line. It holds about 40 orders. So how many couriers is that?\nBOARD: show queue-ladder\nBOARD: ask How many couriers do 300 orders need?";
@@ -21,6 +22,21 @@ test("board lines are read from the end of a turn and never spoken", () => {
   // keep takes nothing; a term carries its meaning; a show with no id is no command.
   assert.deepEqual(boardCommands('Right.\nBOARD: keep\nBOARD: term SLA: the promised response time\nBOARD: show'),
     [{ verb: 'keep', arg: '' }, { verb: 'term', arg: 'SLA: the promised response time' }]);
+  // clear takes nothing either, and a turn may have no board line at all.
+  assert.deepEqual(boardCommands('BOARD: clear\nNow, tell me about yourself.'), [{ verb: 'clear', arg: '' }]);
+  assert.equal(withoutBoard('BOARD: clear\nNow, tell me about yourself.'), 'Now, tell me about yourself.');
+  assert.deepEqual(boardCommands('Now, tell me about yourself.'), []);
+});
+
+test('the board is optional, and the brief overrides what the mind is told about using it', () => {
+  const text = boardInstructions(bank);
+  assert.match(text, /The board is optional\. A turn may start with show, draw, keep or clear, or have no board line at all, which keeps what's up\./);
+  assert.match(text, /BOARD: clear {2}empties the board, which then shows the session title, as when nothing is up\./);
+  assert.match(text, /ask <your question[^\n]*Optional: use it when seeing the question written helps them\./);
+  assert.match(text, /On your first turn nothing is up, and you may leave it that way\./);
+  assert.match(text, /The brief's instructions about the board, turn length, pacing and questions override these defaults\./);
+  assert.doesNotMatch(text, /Start every turn|always shows|End with an ask/);
+  assert.match(text, /- ladder: The scale ladder\. Teaching 1 Looks:/);
 });
 
 function page() {
@@ -66,6 +82,27 @@ test('the board shows, draws and asks for the turn being spoken, and tells the m
   assert.ok(late.events[0].replay);
   p.off(); late.off();
   assert.equal(board.connected(), false);
+});
+
+test('clear empties the board for the page and for the mind, and drops a drawing still coming', async t => {
+  t.after(board.end);
+  board.start();
+  const p = page();
+  board.apply([{ verb: 'show', arg: 'ladder' }, { verb: 'ask', arg: 'Ready?' }, { verb: 'term', arg: 'SLA: promised time' }], '', bank);
+  let finish!: (drawn: { html: string; looks: string }) => void;
+  const drawing = board.apply([{ verb: 'draw', arg: 'Slow drawing' }], '', bank, () => new Promise(r => { finish = r; }));
+  board.apply([{ verb: 'clear', arg: '' }], 'spoken', bank);
+  assert.equal(p.events.at(-1).type, 'clear');
+  assert.equal(board.onScreen(), 'nothing yet');
+  finish({ html: '<p>late</p>', looks: '' });
+  await drawing;
+  assert.equal(p.events.at(-1).type, 'clear'); // the drawing came too late
+  const late = page(); // a page that opens now sees an empty board
+  assert.deepEqual(late.types(), []);
+  late.off();
+  board.apply([{ verb: 'show', arg: 'ladder' }], '', bank); // and the same visual can go up again
+  assert.equal(p.events.at(-1).type, 'visual');
+  p.off();
 });
 
 test('a drawing that lands after a newer visual went up is dropped', async t => {
@@ -129,4 +166,25 @@ test("a drawing that went up is kept in the session's drawings, its looks as a l
   const next = page();
   assert.ok(!next.types().includes('recap'));
   next.off();
+});
+
+test('the drawer is told to draw only what the request says, to take nothing from the speech, and its tokens are counted', async t => {
+  const responses = openai().responses as any, create = responses.create, calls: any[] = [];
+  t.after(() => { responses.create = create; });
+  const label = 'Design a ledger for payments.';
+  responses.create = async (params: any) => {
+    calls.push(params);
+    return { output_text: JSON.stringify({ type: 'text', gold: null, note: null, columns: null, svg: null, items: [{ label, value: null, unit: null, sub: null, dim: false, colour: 'ink', from: null, op: null }] }),
+      usage: { input_tokens: 1000, output_tokens: 50 }, service_tier: 'ultrafast' };
+  };
+  const spent0 = spend.usd;
+  const { html, looks } = await board.draw(label, { said: 'First, the interview question.' });
+  const [system, user] = calls[0].input;
+  assert.match(system.content, /Draw only what the request describes: no parts, steps, numbers, names, design or answers of your own/);
+  assert.match(system.content, /- text: when the request is only a question or a sentence/);
+  assert.match(user.content, /^Draw this, and only this: Design a ledger for payments\./);
+  assert.match(user.content, /only for the order its parts come in; take nothing from it into the drawing\):\nFirst, the interview question\./);
+  assert.ok(html.includes('Design a ledger for payments.') && !html.includes('<rect'));
+  assert.equal(looks, `the words, as written: ${label}`);
+  assert.ok(Math.abs(spend.usd - spent0 - (1000 * 2 + 50 * 10) / 1e6 * 6) < 1e-12);
 });
