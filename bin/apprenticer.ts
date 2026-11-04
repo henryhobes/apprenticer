@@ -13,7 +13,7 @@ import { DEFAULT_MEMORY, openSpace, readMeta, readSpace, sessionDirs } from '../
 
 const USAGE = `apprenticer <dir>                    serve the space in <dir> on localhost and open it
 apprenticer init <dir>               start a new space
-apprenticer skill [dir]              install the skill that builds spaces, for Claude Code (default ~/.claude/skills/apprenticer)
+apprenticer skill [dir]              install the skill that builds spaces, for your coding agent (default ~/.claude/skills/apprenticer)
 apprenticer check <dir>              check a space's files (no key, no model)
 apprenticer preview <dir>            serve and open only the visuals preview (no key)
 apprenticer notes <dir> [session]    save the notes for a session whose notes pass failed
@@ -64,12 +64,12 @@ Then write the brief and read it back to them in three to five lines. Write no v
 
 When it's built: apprenticer ${path}`;
 
-/** Puts the skill where Claude Code finds it, so it starts with the interview wherever the user asks for a space. */
+/** Puts the skill where a coding agent finds it (Claude Code's folder unless told otherwise), so it starts with the interview wherever the user asks for a space. */
 function installSkill(path = join(homedir(), '.claude', 'skills', 'apprenticer')) {
   const target = join(resolve(path), 'SKILL.md');
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, GUIDE());
-  console.log(`installed ${target}\nIn Claude Code, say what you want to prepare for or learn ("help me prepare for my interview on Thursday"), or type /apprenticer.`);
+  console.log(`installed ${target}\nIn your coding agent, say what you want to rehearse or learn out loud ("I want to rehearse my interview on Thursday"), or call the skill by name (/apprenticer).${path ? '' : '\nFor an agent that keeps its skills elsewhere: apprenticer skill <its skills folder>/apprenticer'}`);
 }
 
 function check(path: string) {

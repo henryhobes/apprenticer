@@ -8,16 +8,16 @@ You don't configure it. Your coding agent writes a **space**, a plain folder; Ap
 
 ## Quick start
 
-Needs Node 24+, an `OPENAI_API_KEY`, and Chrome on a Mac (the only setup it has been used on so far; other browsers should work, but are untested).
+Needs Node 24+ and an `OPENAI_API_KEY`.
 
 ```bash
 npm install -g apprenticer   # or prefix every command with npx
-apprenticer skill            # for Claude Code: installs the skill that builds spaces
+apprenticer skill            # installs the skill that builds spaces, for your coding agent
 ```
 
-Then, in Claude Code, say what you want: "help me prepare for my interview with a CTO on Thursday", "I want to understand how data centres get their power", or type `/apprenticer`. The skill makes the space, interviews you (what it's for, what will really happen, who the AI should be), reads the brief back for your yes, builds the visuals, and rehearses it against a simulated you.
+Then, in your coding agent, say what you want to rehearse or learn out loud: "I want to rehearse my interview with a CTO on Thursday", "teach me out loud how data centres get their power", or call the skill by name (`/apprenticer`). The skill makes the space, interviews you (what it's for, what will really happen, who the AI should be), reads the brief back for your yes, builds the visuals, and rehearses it against a simulated you.
 
-With another coding agent, run `apprenticer init ./my-space` and open that folder in it: `init` puts the same guide there as `AGENTS.md` (and a `CLAUDE.md` that points at it), and prints the interview for the agent to start with. Then:
+`apprenticer skill` installs to `~/.claude/skills/apprenticer/` (Claude Code's folder); for another agent that reads skills, give its skills folder: `apprenticer skill <folder>/apprenticer`. If your agent doesn't use skills, run `apprenticer init ./my-space` and open that folder in it: `init` puts the same guide there as `AGENTS.md` (and a `CLAUDE.md` that points at it), and prints the interview for the agent to start with. Then:
 
 ```bash
 apprenticer ./my-space
@@ -49,7 +49,7 @@ A leading HTML comment in any file is a note to the mind. `skill/SKILL.md` is th
 | `apprenticer <dir>` | serve the space on localhost and open it (`--no-open` to skip the browser). `/preview` shows every visual on its own board, with a button per `set` move and a box to type what's said |
 | `apprenticer preview <dir>` | serve and open only `/preview`, no API key needed: for writing visuals before there is a key. Serving a session still needs the key |
 | `apprenticer init <dir>` | start a space: a stub brief, `notes/memory.md`, `visuals/`, `sources/`, a `.gitignore`, and `AGENTS.md` for your coding agent; prints the interview it starts with |
-| `apprenticer skill [dir]` | install the guide as a Claude Code skill, in `~/.claude/skills/apprenticer/` unless you give another folder |
+| `apprenticer skill [dir]` | install the guide as a skill (`SKILL.md`) for your coding agent: in `~/.claude/skills/apprenticer/` unless you give another folder |
 | `apprenticer check <dir>` | static checks, no key needed: a brief, a title sentence on every visual and note, a `data-cue` on every step after the first, sources under the cap. Exit code 1 on a problem |
 | `apprenticer notes <dir> [session]` | save the notes for a session whose notes update failed |
 | `apprenticer sim <dir> --user persona.md` | rehearse the space in text, no voice: the mind (same turn function and instructions as a real session; the pauses and going-on after silence aren't rehearsed) against a simulated user described in `persona.md` (the mind is told the session time and turn on a clock that runs at 150 words a minute and 3 s a turn; the user sees only what would be on their screen), then a judge scores the mind 1-5 on following the brief, adapting to the user, turns for a voice, board use, pushback and leaving, honesty, (in a later run) memory, and whether this user would come back, quoting the moment that would make them quit. `--turns 10`, `--out file.json`, `--draw` (really draw `draw` lines), `--tier ultrafast` for real-session latencies. The notes pass writes its result only into the run's own `sessions/<ts>/notes-after/`, so a rehearsal never touches your real memory; `--notes` applies it to `notes/` (so a second run tests memory), `--no-notes` skips the pass |
