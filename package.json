@@ -4,6 +4,25 @@
   "description": "A voice and board interface for working with AI on anything. A space is a plain folder; Apprenticer serves it on localhost.",
   "type": "module",
   "license": "MIT",
+  "author": "Henry Hobin",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/henryhobes/apprenticer.git"
+  },
+  "homepage": "https://github.com/henryhobes/apprenticer#readme",
+  "bugs": {
+    "url": "https://github.com/henryhobes/apprenticer/issues"
+  },
+  "keywords": [
+    "voice",
+    "ai",
+    "tutor",
+    "interview-prep",
+    "openai",
+    "realtime",
+    "claude-code",
+    "skill"
+  ],
   "engines": {
     "node": ">=24"
   },

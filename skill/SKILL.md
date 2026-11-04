@@ -1,11 +1,19 @@
 ---
 name: apprenticer
-description: Build or revise an Apprenticer space, a folder that `npx apprenticer` serves as a voice session with a board, for learning a topic, rehearsing a real conversation (an interview, a design review, a negotiation, a language) or thinking a decision through out loud. Use when the user wants to prepare for an interview or meeting by talking it through, learn something by voice, mentions Apprenticer or a space, or comes back after a session to improve one.
+description: Rehearse or learn something out loud. Builds an Apprenticer space, a voice session with a board that `npx apprenticer` serves in the browser. Use when the user wants to prepare for an interview, design review, meeting, pitch or negotiation; to learn or be taught a topic; to practise a language; or to think a decision through. Also use when they mention Apprenticer or a space, or come back after a session to improve one. If they haven't asked for a voice session, offer one first.
 ---
 
 # Building an Apprenticer space
 
-Read all of this before you propose anything to the user. If you have already pitched them a design, set it aside: the interview below decides what gets built.
+## Start here
+
+1. If the user hasn't asked for a voice session, offer one in a sentence ("Want to rehearse this out loud? I can set up a voice session where the AI plays your boss.") and go on only if they want it.
+2. Before you ask or propose anything, run `npx apprenticer init <folder>`, in a new folder named for the space (`./design-review`), or `init .` to revise the space you're in. It prints the interview questions.
+3. Ask those questions, in order, one per message, and wait for each answer. Don't swap in questions of your own, and don't answer them yourself from context. If you've already pitched a design, set it aside: the answers decide what gets built.
+4. Then follow the four moves below. No visuals or persona until the user has said yes to the brief's read-back, and no visual built until they've said yes to your list of them.
+5. Before you hand over, run `check` and `sim`. If either couldn't run (no API key, say), tell the user it didn't, and what it would have tested.
+
+Read the rest of this file before move 2.
 
 An Apprenticer space is a folder. The user runs `npx apprenticer <the folder>` and talks, by voice only, with a "mind" model that has read everything here; a separate voice model only speaks the mind's words. Beside the voice is a board, a 1200x750 dark screen the mind may use for what is easier to see than hear. Nothing about teaching, interviewing or role-play is built in: the brief decides everything, so every session is as good as what you write here. Your job is to build the space with the user in 15 to 30 minutes, then improve it after they've used it. Nearly everything that has frustrated real users came from how the space was written, not from the runtime: a goal guessed instead of asked, a mock on material nobody taught them, rules that together asked one question five times.
 
@@ -37,7 +45,7 @@ Commands:
 
 ## Build it in four moves
 
-**1. Interview.** Run `npx apprenticer init <dir>` first (a new folder named for the space, unless the user gave one; it keeps files that already exist, so run it again whenever you come back to this move). It prints the interview questions. Ask them now, one at a time, in your own words, and wait for each answer. This move is never skipped, even when you know the user well, have notes on them, or are short of time: context tells you about the person, not what they want from this space, and your guess at their goal is the most common reason a space fails. You may put your guess as the question ("Sounds like a mock of Thursday's review, with your VP pushing on cost. Right?"), but the user answers every one. Put what they give you to read in sources/, as text.
+**1. Interview.** `init` (Start here) keeps files that already exist, so run it again whenever you come back to this move: it prints the questions. Ask them one at a time, in your own words, and wait for each answer. This move is never skipped, even when you know the user well, have notes on them, or are short of time: context tells you about the person, not what they want from this space, and your guess at their goal is the most common reason a space fails. You may put your guess as the question ("Sounds like a mock of Thursday's review, with your VP pushing on cost. Right?"), but the user answers every one. Put what they give you to read in sources/, as text.
 - If the space practises for a real conversation, the user chooses what it covers: draft 20 to 25 likely questions or topics, have them rate each good, medium or bad (a list in chat will do), and build only on the good ones.
 - Rehearse the person, not a topic. A first-round interview asks about their own work (the most complex thing they built, its hardest part, a call they got wrong); a drill on textbook mechanisms is a teaching space, built only if they ask for one.
 

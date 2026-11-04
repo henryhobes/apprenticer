@@ -14,11 +14,11 @@ you ⇄ browser (WebRTC) ⇄ OpenAI GPT-Live: the voice and ears only
 
 ## Quick start
 
-Needs Node 24+ and an `OPENAI_API_KEY`.
+Needs Node 24+, an `OPENAI_API_KEY`, and Chrome on a Mac (the only setup it has been used on so far; other browsers should work, but are untested).
 
 ```bash
-git clone <this repo> && cd apprenticer && npm install && npm link   # puts `apprenticer` on your PATH
-apprenticer skill    # for Claude Code: installs the skill that builds spaces
+npm install -g apprenticer   # or prefix every command with npx
+apprenticer skill            # for Claude Code: installs the skill that builds spaces
 ```
 
 Then, in Claude Code, say what you want: "help me prepare for my interview with a CTO on Thursday", "I want to understand how data centres get their power", or type `/apprenticer`. The skill makes the space, interviews you (what it's for, what will really happen, who the AI should be), reads the brief back for your yes, builds the visuals, and rehearses it against a simulated you.
@@ -32,6 +32,8 @@ apprenticer ./my-space
 It prints `Apprenticer: ./my-space ("<title>") → http://localhost:8787` and opens the page. Tap **On**, allow the microphone, and listen: the mind speaks first. Tap **Off** when you're done; it writes its notes and shows a short recap.
 
 The first run asks for your API key once and saves it to `~/.config/apprenticer/.env`, never into the space.
+
+**What it costs.** About $2 to $3 for a 25-minute session, on your OpenAI key: the voice is about $0.05 a minute, and the mind runs on OpenAI's Ultrafast tier by default, 6x the standard price, for answers in about 2 s instead of 5 (`MIND_TIER=default` for the cheaper, slower one). The page shows what this session and today have cost, and a new session is refused once a space has spent $20 in a day (`DAILY_CAP_USD`).
 
 ## A space
 
@@ -87,3 +89,12 @@ The cost on the page and the cap count voice minutes, web searches and the mind'
 npm test
 npm run typecheck
 ```
+
+## Developing
+
+```bash
+git clone https://github.com/henryhobes/apprenticer && cd apprenticer && npm install && npm link
+npm test && npm run typecheck
+```
+
+MIT licensed.
