@@ -6,7 +6,7 @@ import WebSocket from 'ws';
 import * as board from './board.ts';
 import { LIVE_USD_PER_MINUTE, WEB_SEARCH_USD, config, openai, spend } from './config.ts';
 import { type Turn, localDate, mindTurn, notesPass, renderTurns } from './mind.ts';
-import { type Meta, type Space, newSessionDir, openSpace, readMeta, readSpace, writeMeta, writeNotes } from './space.ts';
+import { type Meta, type Space, newSessionDir, openSpace, readMeta, readSpace, spentToday, writeMeta, writeNotes } from './space.ts';
 
 // The mind (a strong text model run by this server) decides everything said in a session; GPT-Live is
 // its voice and ears. GPT-Live delegates each substantive turn to the client (us); we run the mind on
@@ -258,7 +258,7 @@ const REATTACH_TRIES = 3;
 const MAX_GO_ONS = 4; // then the mind waits for them to say something, even after a point that isn't a question
 const append = (type: string, content: string) => ({ type, event_id: randomUUID(), delegation_id: null, content });
 
-/** Rewrites the notes from a session folder's transcript and keeps its recap; a session the person barely spoke in changes nothing. With `apply` false (a rehearsal) the notes go to the session folder only. Throws if the pass fails (run it again with `apprenticer notes`). */
+/** Rewrites the notes from a session folder's transcript and keeps its recap; a session the person barely spoke in changes nothing. With `apply` false (a rehearsal) the notes go to the session folder only. If the pass fails it marks the session's notes failed and throws (run it again with `apprenticer notes`). */
 export async function saveNotes(dir: string, sessionDir: string, apply = true): Promise<Meta> {
   const meta = readMeta(sessionDir)!, transcript = readFileSync(join(sessionDir, 'transcript.md'), 'utf8');
   const spoken = (transcript.match(/(?<=^User: ).*$/gm) ?? []).join(' ').split(/\s+/).filter(Boolean).length;
@@ -266,7 +266,8 @@ export async function saveNotes(dir: string, sessionDir: string, apply = true): 
   else {
     const space = readSpace(dir), started = new Date(meta.started_at); // read again: they may have edited the notes since
     const before = spend.usd;
-    const { recap, notes } = await notesPass(space, transcript, `${localDate(started)} ${started.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`);
+    const { recap, notes } = await notesPass(space, transcript, `${localDate(started)} ${started.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`)
+      .catch(err => { writeMeta(sessionDir, { ...meta, notes: 'failed' }); throw err; });
     meta.cost_usd += spend.usd - before; // the pass costs tokens too
     writeNotes(space, notes, sessionDir, apply);
     Object.assign(meta, { recap, notes: apply ? 'updated' : 'preview' });
@@ -281,7 +282,7 @@ export function runSession(dir: string, sessionId: string): Promise<void> {
   const meta: Meta = { id: sessionId, started_at: new Date(started).toISOString(), cost_usd: 0 };
   writeMeta(sessionDir, meta);
   board.start(join(sessionDir, 'drawings'));
-  const usage: Tally = { seconds: 0, searches: 0 }, spent0 = spend.usd;
+  const usage: Tally = { seconds: 0, searches: 0 }, spent0 = spend.usd, today0 = spentToday(dir); // today0: this space's other sessions today
   const cost = () => costUsd(usage) + spend.usd - spent0; // voice, searches and the mind's tokens
   const log = (event: object) => appendFileSync(join(sessionDir, 'events.jsonl'), JSON.stringify({ ...event, received_at: Date.now() }) + '\n');
   const hangup = () => openai().live.sessions.hangup(sessionId).catch(() => {});
@@ -305,7 +306,7 @@ export function runSession(dir: string, sessionId: string): Promise<void> {
     if (changed || usd !== meta.cost_usd) {
       meta.cost_usd = usd;
       writeMeta(sessionDir, meta);
-      board.push({ type: 'cost', usd });
+      board.push({ type: 'cost', usd, today: today0 + usd });
     }
   }
 
@@ -319,7 +320,7 @@ export function runSession(dir: string, sessionId: string): Promise<void> {
       console.log(`[${sessionId}] ended; saving notes`);
       try {
         const saved = await saveNotes(dir, sessionDir);
-        board.push({ type: 'cost', usd: saved.cost_usd });
+        board.push({ type: 'cost', usd: saved.cost_usd, today: today0 + saved.cost_usd });
         board.push({ type: 'recap', ...saved.recap, skipped: saved.notes === 'skipped' });
         console.log(`[${sessionId}] notes ${saved.notes}`);
       } catch (err) {

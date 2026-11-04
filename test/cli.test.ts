@@ -26,10 +26,18 @@ test('init makes a starting space, keeps what is already there, and ends up pass
   assert.equal(readFileSync(join(dir, '.gitignore'), 'utf8'), 'sessions/\n');
   assert.ok(run('init', dir).stdout.split('\n').filter(l => l.startsWith('kept')).length >= 5);
   assert.equal(run('check', dir).status, 0);
-  // The coding agent's guide ships as template/AGENTS.md and is copied in, with a CLAUDE.md that points at it.
-  assert.ok(existsSync(new URL('../template/AGENTS.md', import.meta.url)));
-  assert.equal(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), readFileSync(new URL('../template/AGENTS.md', import.meta.url), 'utf8'));
+  // The guide is the skill, copied in without its front-matter, with a CLAUDE.md that points at it; init prints the interview for the agent.
+  const skill = readFileSync(new URL('../skill/SKILL.md', import.meta.url), 'utf8'), agents = readFileSync(join(dir, 'AGENTS.md'), 'utf8');
+  assert.match(skill, /^---\nname: apprenticer\ndescription: .+\n---\n/);
+  assert.ok(agents.startsWith('# Building an Apprenticer space') && skill.endsWith(agents));
   assert.equal(readFileSync(join(dir, 'CLAUDE.md'), 'utf8'), '@AGENTS.md\n');
+  assert.match(first.stdout, /Interview the user first[\s\S]*5\. What do you hate/);
+});
+
+test('skill installs the guide as a skill, front-matter and all', () => {
+  const dir = join(tmpSpace({}), 'skills', 'apprenticer');
+  assert.equal(run('skill', dir).status, 0);
+  assert.equal(readFileSync(join(dir, 'SKILL.md'), 'utf8'), readFileSync(new URL('../skill/SKILL.md', import.meta.url), 'utf8'));
 });
 
 test('a persona.md at the space root (for sim) is not a problem for check', () => {

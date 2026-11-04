@@ -8,7 +8,7 @@ export interface Note { name: string; about: string; body: string }
 export interface Source { name: string; text: string }
 export interface Space { dir: string; title: string; brief: string; visuals: Visual[]; notes: Note[]; sources: Source[]; errors: string[]; warnings: string[] }
 export interface Recap { covered: string[]; open: string }
-export interface Meta { id: string; started_at: string; ended_at?: string; duration_s?: number; cost_usd: number; sim?: boolean; recap?: Recap; notes?: 'updated' | 'skipped' | 'preview' }
+export interface Meta { id: string; started_at: string; ended_at?: string; duration_s?: number; cost_usd: number; sim?: boolean; recap?: Recap; notes?: 'updated' | 'skipped' | 'preview' | 'failed' }
 
 export const SOURCE_CAP = 100_000;
 export const DEFAULT_MEMORY = 'What I know about this person and how our sessions have gone: who they are, what they want, how they like to work, what we covered, and what is still open.';

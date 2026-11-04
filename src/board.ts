@@ -68,7 +68,7 @@ export async function draw(request: string, opts: { said?: string } = {}): Promi
 
 /** What the mind is told about the board while a page is open; added to its instructions. */
 export const boardInstructions = (bank: Visual[]) => `The person has a screen in front of them: a board you control, which they watch while you talk. You drive it with board lines, each on its own line and never spoken: the turn's visual, if it has one, as the very first line of your turn, so it's up the moment they start hearing you; then any set lines; then your words; then ask and term at the very end.
-BOARD: show <id>  puts up one of the space's prepared visuals (below).
+BOARD: show <id>  puts up one of the space's prepared visuals (below). Showing the one that's up changes nothing; to start it over, write BOARD: clear and then the show, in the same turn.
 BOARD: draw <what to draw>  has one drawn on the spot; it lands a couple of seconds into your turn. It draws only what this line says and adds nothing, so put in the line everything it should show. Words alone are no drawing: a question to read is an ask.
 BOARD: keep  leaves the visual that's up.
 BOARD: clear  empties the board, which then shows the session title, as when nothing is up.

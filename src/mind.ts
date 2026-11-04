@@ -7,17 +7,20 @@ import type { Recap, Space } from './space.ts';
 // sources. The voice model only speaks for it. Its memory is the notes: plain files, rewritten (never
 // appended to) after each session from the transcript, which is kept.
 
-/** Runs a long model call in background mode, which survives past Node's 5-minute response wait. */
+/** Runs a long model call in background mode, which survives past Node's 5-minute response wait. Gives up after `maxMinutes` in all, even on a request that hangs. */
 export async function longResponse(params: ResponseCreateParamsNonStreaming, maxMinutes = 30): Promise<string> {
-  let res = await openai().responses.create({ ...params, background: true });
-  const deadline = Date.now() + maxMinutes * 60_000;
-  while (res.status === 'queued' || res.status === 'in_progress') {
-    if (Date.now() > deadline) {
-      await openai().responses.cancel(res.id).catch(() => {});
-      throw new Error(`model call took over ${maxMinutes} minutes; cancelled`);
+  const signal = AbortSignal.timeout(maxMinutes * 60_000), late = () => new Error(`model call took over ${maxMinutes} minutes; cancelled`);
+  let res = await openai().responses.create({ ...params, background: true }, { signal }).catch(err => { throw signal.aborted ? late() : err; });
+  const id = res.id;
+  try {
+    while (res.status === 'queued' || res.status === 'in_progress') {
+      await new Promise(r => setTimeout(r, 5_000));
+      res = await openai().responses.retrieve(id, {}, { signal });
     }
-    await new Promise(r => setTimeout(r, 5_000));
-    res = await openai().responses.retrieve(res.id);
+  } catch (err) {
+    if (!signal.aborted) throw err;
+    await openai().responses.cancel(id).catch(() => {}); // or it runs on, and bills, in the background
+    throw late();
   }
   if (res.status !== 'completed') throw new Error(`model call ${res.status}: ${JSON.stringify(res.error ?? res.incomplete_details)}`);
   meter(res);
@@ -46,15 +49,15 @@ Take them seriously. When they push back, either they're right (say so plainly, 
 
 Start with substance, not a verdict on what they said ("You're right", "Exactly", "Good catch"): when they're right, show it by building on their point. If the brief has you judging their answers, the verdict comes first, plainly.
 
-Remember them. Use what they said earlier in this session and what your notes hold; build on their positions; don't go over what they already have.
+Remember them. Use what they said earlier in this session and what your notes hold; build on their positions; don't go over what they already have. Never ask them something they've already answered this session, and what they showed today beats what your notes say: once they've got it today, it's done today. If they say "we've done this", agree in a few words and move on.
 
 Be honest. Say facts the way you'd remember them, never as a citation. Never make a fact up. If something that matters is one you don't know or may have changed, reply with only LOOKUP: followed by what to find, and you'll get to search before answering.
 
-They decide when it ends. Never wrap up or talk about next time unless they say they're going, or the brief sets a length and the session time (given with each turn) has reached it; then close the way the brief says, or simply and warmly.
+They decide when it ends. Never wrap up or talk about next time unless they say they're going, or the brief sets a length and the session time (given with each turn) has reached it; then close the way the brief says, or simply and warmly. If they're in the middle of asking something, answer it first.
 
 Follow the brief literally. Where it gives exact lines ("Noted. Next.") or rules (no recap, no hints), use and obey them as written, every turn. Where it defines a closing (feedback, a verdict), finish all of it before the goodbye, over as many turns as it takes.
 
-Turn-taking. A turn ends one of two ways: on a question for them, and you wait for the answer; or at the end of a point, and if they don't come in you are asked to go on a few seconds later. Ask at most one question a turn unless the brief says otherwise. Never tack a question on just to hand over the turn, and don't ask permission to go on: if the next step is obvious, take it. Never ask about their reaction or your own clarity ("does that make sense?", "what did you take from that?").`;
+Turn-taking. A turn ends one of two ways: on a question for them, and you wait for the answer; or at the end of a point, and if they don't come in you are asked to go on a few seconds later. Ask at most one question a turn unless the brief says otherwise. Never tack a question on just to hand over the turn, and don't ask permission to go on: if the next step is obvious, take it. Never ask about their reaction or your own clarity ("does that make sense?", "what did you take from that?", "what sticks with you?", "what stands out?"): every question you ask has a real answer they can give from what they know.`;
 
 /** The mind's whole instructions: stable first (protocol, brief, sources, notes), then the board's, so the start of every turn's prompt is the same and can be cached. */
 export function instructions(space: Space, board?: string): string {
@@ -158,6 +161,6 @@ export async function notesPass(space: Space, transcript: string, when: string):
     input: [{ role: 'system', content: `You are the mind behind a voice conversation with one person. The brief says who you are and what the conversation is for.\n\n# THE BRIEF\n${space.brief}\n\n${NOTES_PASS}\n${space.notes.map(n => `- ${n.name}: ${n.about || 'what you need to remember'}`).join('\n')}` },
       { role: 'user', content: `YOUR NOTES BEFORE THIS SESSION\n${space.notes.map(n => `## ${n.name}\n${n.body || '(empty)'}`).join('\n\n')}\n\nTHIS SESSION (${when})\n${transcript}` }],
     text: { format: { type: 'json_schema', name: 'notes', schema: notesSchema(names), strict: true } },
-  });
+  }, 2); // it holds up the next session: a hung request mustn't lock them out (`apprenticer notes` runs it again)
   return JSON.parse(text);
 }

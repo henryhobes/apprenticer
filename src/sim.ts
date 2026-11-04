@@ -14,7 +14,7 @@ import { type Meta, type Space, newSessionDir, openSpace, readMeta, writeMeta } 
 
 const USER = (persona: string) => `You are role-playing a person in a rehearsal, to test an AI that talks with them by voice. Behave exactly like the person described below, and never mention that this is a test.
 
-This is a voice conversation transcribed to text: talk the way people do on a call, casually and briefly (one to three sentences unless your persona says otherwise), with the odd "um" or false start. Answer what the AI actually said; push back, ask, wander or go quiet the way your persona would. Don't flatter, and don't know more than your persona would: when asked, guess the way that person would. A note in [Screen: ...] after an AI turn says what was on your screen then: you see it, so you can answer from it. In the conversation so far "Mind" is the AI and "User" is you.
+This is a voice conversation transcribed to text: talk the way people do on a call, casually and briefly (one to three sentences unless your persona says otherwise), with the odd "um" or false start. Answer what the AI actually said; push back, ask, wander or go quiet the way your persona would. Don't flatter, and don't know more than your persona would: when asked, guess the way that person would. Don't be a good sport: when the AI does something your persona hates or gives up on, react exactly as the persona says they do, every time it happens. A note in [Screen: ...] after an AI turn says what was on your screen then: you see it, so you can answer from it. In the conversation so far "Mind" is the AI and "User" is you.
 
 If your persona leaves or ends the session, say your goodbye and put END alone on the next line.
 
@@ -29,6 +29,7 @@ const CRITERIA = {
   pushback_tangents_leaving: "Handled pushback, tangents, confusion and the user leaving: took pushback seriously (agreed plainly or settled it with a fact), fixed mistakes briefly, stayed on purpose without stonewalling, closed the way the brief wants. Null if none of these came up.",
   honesty: "Honesty: no made-up facts, numbers or sources; said so when unsure or looked it up; claims fit the brief, notes and sources.",
   used_memory: "Used memory: in a later session, picked up from the notes (what was covered, what was open, what the user prefers) naturally, without reciting them. Null if the notes were empty before this session.",
+  would_come_back: "Would this user want to come back tomorrow? Judge by their persona: what they want, what annoys them and what makes them give up, not by how gamely the simulated user played along. Quote the moment most likely to make them quit.",
 };
 const keys = Object.keys(CRITERIA) as (keyof typeof CRITERIA)[];
 const JUDGEMENT = { type: 'object', additionalProperties: false, required: [...keys, 'worst_moment', 'best_moment', 'user_would_say'], properties: {

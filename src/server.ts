@@ -14,10 +14,14 @@ export const page = () => readFileSync(packageFile('public/index.html'), 'utf8')
  * Every visual of the space on its own board, to check them without a session; read afresh each time.
  * Only this, and no key: what `apprenticer preview` serves. On localhost only, with no login: this is for the
  * one person at this computer, and refusing any other Host keeps a web page elsewhere from reaching it through DNS rebinding.
+ * ALLOW_HOST names others, for a proxy that brings in another device of theirs.
  */
 export function createPreviewApp(dir: string) {
   const app = new Hono();
-  app.use(async (c, next) => /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(c.req.header('host') ?? '') ? next() : c.text('not found', 404));
+  app.use(async (c, next) => {
+    const host = (c.req.header('host') ?? '').toLowerCase().replace(/:\d+$/, '');
+    return ['localhost', '127.0.0.1', '[::1]', ...config.allowHosts].includes(host) ? next() : c.text('not found', 404);
+  });
   app.get('/preview', c => c.html(previewPage(readSpace(dir), page())));
   return app;
 }
@@ -28,20 +32,20 @@ export function createApp(dir: string, client: OpenAI = openai(), run = runSessi
   let busy = false; // a session, and then the saving of its notes, is under way: a new one would start on stale notes
 
   app.get('/', c => c.html(page()));
-  app.get('/api/space', c => { const space = readSpace(dir); return c.json({ title: space.title, dir: space.dir, last: lastRecap(space.dir) }); });
+  app.get('/api/space', c => { const space = readSpace(dir); return c.json({ title: space.title, dir: space.dir, last: lastRecap(space.dir), today: spentToday(dir), cap: config.dailyCapUsd }); });
 
   // The session in the browser over WebRTC: the server creates it, then runs the mind on its own connection.
   app.post('/api/session', async c => {
-    if (busy) return c.json({ error: 'A session is still running or saving its notes. Try again in a minute.' }, 409);
+    if (busy) return c.json({ error: 'A session is still running, or saving its notes (under two minutes). Try again then.' }, 409);
     busy = true;
     try {
-      openSpace(dir); // refuses a space with no brief
-      if (spentToday(dir) >= config.dailyCapUsd) throw Object.assign(new Error(`Today's $${config.dailyCapUsd} limit is reached.`), { status: 429 });
+      const space = openSpace(dir); // refuses a space with no brief; read now, as the brief may have changed since the server started
+      if (spentToday(dir) >= config.dailyCapUsd) throw Object.assign(new Error(`Today's $${config.dailyCapUsd} is spent · back tomorrow`), { status: 429 });
       const { sdp } = await c.req.json<{ sdp: string }>();
       const live = await client.live.create({ session: voiceSession(), transport: { type: 'webrtc', sdp } });
       const id = live.session.id;
       run(dir, id).catch(err => console.error(`[${id}] session failed`, err)).finally(() => { busy = false; });
-      console.log(`[${id}] session started`);
+      console.log(`[${id}] session started: "${space.title}"`);
       return c.json({ sdp: live.transport.sdp, session_id: id });
     } catch (err: any) {
       busy = false;

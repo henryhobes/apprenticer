@@ -30,7 +30,7 @@ test('a rehearsal keeps a clock (150 words a minute, 3 s between turns) for the 
   t.after(() => { responses.create = create; });
   const words = (n: number) => 'word '.repeat(n).trim();
   const turns = [`BOARD: show 01-today\n${words(600)}`, words(300), 'Bye.'];
-  const keys = ['followed_brief', 'adapted_to_user', 'voice_turns', 'board_use', 'pushback_tangents_leaving', 'honesty', 'used_memory'];
+  const keys = ['followed_brief', 'adapted_to_user', 'voice_turns', 'board_use', 'pushback_tangents_leaving', 'honesty', 'used_memory', 'would_come_back'];
   responses.create = async (params: any) => {
     if (params.stream) { mind.push(params.input[1].content); const text = turns[mind.length - 1]; return (async function* () { yield { type: 'response.output_text.delta', delta: text }; })(); }
     if (params.text?.format?.name === 'judgement') { judged = params.input[1].content; return { output_text: JSON.stringify({ ...Object.fromEntries(keys.map(k => [k, { score: 4, evidence: '' }])), worst_moment: '', best_moment: '', user_would_say: '' }) }; }

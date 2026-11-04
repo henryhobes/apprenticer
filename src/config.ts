@@ -14,7 +14,9 @@ const env = process.env;
 export const config = {
   openaiApiKey: env.OPENAI_API_KEY ?? '',
   port: Number(env.PORT ?? 8787),
-  dailyCapUsd: Number(env.DAILY_CAP_USD ?? 10),
+  // Other names this computer is reached by, to use it from another device through a proxy such as `tailscale serve` (see the README).
+  allowHosts: (env.ALLOW_HOST ?? '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean),
+  dailyCapUsd: Number(env.DAILY_CAP_USD ?? 20), // a 25-minute session on the Ultrafast tier is about $2 to $3
   liveModel: env.LIVE_MODEL ?? 'gpt-live-1',
   voice: env.VOICE ?? 'vesper', // British English, masculine (GPT-Live voice list)
   mindModel: env.MIND_MODEL ?? 'gpt-6.1-sol',
@@ -45,7 +47,7 @@ export function tokensUsd(res: Priced): number {
 export const spend = { usd: 0 };
 export const meter = (res: Priced) => { spend.usd += tokensUsd(res) + (res.output?.filter(o => o.type === 'web_search_call').length ?? 0) * WEB_SEARCH_USD; }; // and the mind's searches
 
-/** A file that ships with the package (public/, template/). The code runs from src/, or, published, from dist/src/: one level deeper. */
+/** A file that ships with the package (public/, skill/). The code runs from src/, or, published, from dist/src/: one level deeper. */
 export const packageFile = (rel: string) => resolve(import.meta.dirname, basename(dirname(import.meta.dirname)) === 'dist' ? '../..' : '..', rel);
 
 let client: OpenAI | undefined;
@@ -54,7 +56,7 @@ export const openai = () => (client ??= new OpenAI({ apiKey: config.openaiApiKey
 /** Makes sure there is an API key: asks for it once in the terminal and keeps it in the user's config folder. */
 export async function requireKey() {
   if (config.openaiApiKey) return;
-  if (!process.stdin.isTTY) throw new Error(`OPENAI_API_KEY is not set. Export it, or put it in ${ENV_FILE}.`);
+  if (!process.stdin.isTTY) throw new Error(`OPENAI_API_KEY is not set, and with no terminal to ask in, it can't be asked for. Save it once with:\n  mkdir -p ${dirname(ENV_FILE)} && echo 'OPENAI_API_KEY=sk-...' >> ${ENV_FILE}\nor export it, or run apprenticer in a terminal, which asks for it.`);
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const key = (await rl.question('OpenAI API key (saved to ' + ENV_FILE + '): ')).trim();
   rl.close();

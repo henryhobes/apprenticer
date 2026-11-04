@@ -14,7 +14,7 @@
     "dist",
     "public",
     "examples",
-    "template"
+    "skill"
   ],
   "scripts": {
     "start": "node bin/apprenticer.ts",

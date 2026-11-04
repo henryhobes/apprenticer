@@ -1,6 +1,13 @@
+---
+name: apprenticer
+description: Build or revise an Apprenticer space, a folder that `npx apprenticer` serves as a voice session with a board, for learning a topic, rehearsing a real conversation (an interview, a design review, a negotiation, a language) or thinking a decision through out loud. Use when the user wants to prepare for an interview or meeting by talking it through, learn something by voice, mentions Apprenticer or a space, or comes back after a session to improve one.
+---
+
 # Building an Apprenticer space
 
-This folder is an Apprenticer space. The user runs `npx apprenticer <this folder>` and talks, by voice only, with a "mind" model that has read everything here; a separate voice model only speaks the mind's words. Beside the voice is a board, a 1200x750 dark screen the mind may use for what is easier to see than hear. Nothing about teaching, interviewing or role-play is built in: the brief decides everything, so every session is as good as what you write here. Your job is to build the space with the user in 10 to 20 minutes, then improve it after they've used it.
+Read all of this before you propose anything to the user. If you have already pitched them a design, set it aside: the interview below decides what gets built.
+
+An Apprenticer space is a folder. The user runs `npx apprenticer <the folder>` and talks, by voice only, with a "mind" model that has read everything here; a separate voice model only speaks the mind's words. Beside the voice is a board, a 1200x750 dark screen the mind may use for what is easier to see than hear. Nothing about teaching, interviewing or role-play is built in: the brief decides everything, so every session is as good as what you write here. Your job is to build the space with the user in 15 to 30 minutes, then improve it after they've used it. Nearly everything that has frustrated real users came from how the space was written, not from the runtime: a goal guessed instead of asked, a mock on material nobody taught them, rules that together asked one question five times.
 
 A complete worked example (rehearsing a design review with a skeptical VP) is in the Apprenticer repository under `examples/design-review/`. Copy its shapes, not its content.
 
@@ -25,33 +32,35 @@ persona.md       optional, yours: the simulated user for `sim`. The runtime igno
 Commands:
 - `npx apprenticer preview <dir>` opens the visuals preview, no API key needed: each visual on its own board with its note, Next part / All parts / Start over, a button per `set` move, and a box to type what's said (to test cue words and labels).
 - `npx apprenticer check <dir>` runs the static checks.
-- `npx apprenticer sim <dir> --user persona.md [--turns 16] [--draw]` rehearses a session in text against a simulated user, then a judge scores it and names the worst moment. `--draw` really draws the `draw` lines. Its clock counts 150 spoken words a minute and 3 s a turn, so 16 turns is about ten minutes. The notes pass goes to that run's `sessions/<ts>/notes-after/` only; `--notes` applies it to notes/ (so a second run tests memory).
+- `npx apprenticer sim <dir> --user persona.md [--turns 16] [--draw]` rehearses a session in text against a simulated user, then a judge scores it, says whether this user would come back, and names the worst moment. `--draw` really draws the `draw` lines. Its clock counts 150 spoken words a minute and 3 s a turn, so 16 turns is about ten minutes. The notes pass goes to that run's `sessions/<ts>/notes-after/` only; `--notes` applies it to notes/ (so a second run tests memory).
 - `npx apprenticer <dir>` is the real thing: it serves the space and opens the browser. `npx apprenticer notes <dir>` re-runs a notes update that failed.
 
 ## Build it in four moves
 
-**1. Interview.** Ask one question at a time, in your own words. Skip what they've already told you; offer a guess to correct when you have one ("Sounds like a mock of Thursday's review, with your VP pushing on cost. Right?"). Stop once these are answered, four questions at most:
-- What do you want to be able to do, when does it become real, and how long is a sitting? (Thursday's review; an exam on the 3rd; "whenever I'm curious"; 20 minutes.)
-- Who are you in this: what do you know cold, and what's shaky?
-- Who should the AI be? A teacher; a specific person (what do they want, what worries them, what would win them over?); a thinking partner; something else.
-- What do you hate in conversations like this? Then: anything it should read? Put what they give you in sources/, as text.
+**1. Interview.** Run `npx apprenticer init <dir>` first (a new folder named for the space, unless the user gave one; it keeps files that already exist, so run it again whenever you come back to this move). It prints the interview questions. Ask them now, one at a time, in your own words, and wait for each answer. This move is never skipped, even when you know the user well, have notes on them, or are short of time: context tells you about the person, not what they want from this space, and your guess at their goal is the most common reason a space fails. You may put your guess as the question ("Sounds like a mock of Thursday's review, with your VP pushing on cost. Right?"), but the user answers every one. Put what they give you to read in sources/, as text.
+- If the space practises for a real conversation, the user chooses what it covers: draft 20 to 25 likely questions or topics, have them rate each good, medium or bad (a list in chat will do), and build only on the good ones.
+- Rehearse the person, not a topic. A first-round interview asks about their own work (the most complex thing they built, its hardest part, a call they got wrong); a drill on textbook mechanisms is a teaching space, built only if they ask for one.
 
-**2. Draft the brief** (below). Read it back in three to five lines, not the file: who the mind is, its rules, how it opens, how it closes. Ask what's wrong, and edit by talking until it's right.
+**2. Draft the brief** (below). Read it back in three to five lines, not the file: who the mind is, its rules, how it opens, how it closes. Ask what's wrong, and edit by talking until it's right. This is a gate: write no visuals or persona until they've said yes to the read-back. A yes to the idea ("yes, build it") isn't this yes, and nor is a review by another model, which can only judge your guess.
 
-**3. Visuals, only where seeing beats hearing.** Propose up to six, one line each: id, what it shows, when it goes up, its `set` move. Get a yes before building. A visual of numbers needs the real numbers: get them into sources/ or don't build it. Build them (The board), run `preview`, send the user to it, and fix what they say. No visuals is a fine answer for a thinking partner.
+**3. Visuals, only where seeing beats hearing.** Propose up to six, one line each: id, what it shows, when it goes up, its `set` move. Get a yes before building. A visual of numbers needs the real numbers: get them into sources/ or don't build it. Build them (The board), run `preview`, send the user to it, and fix what they say. No visuals is a fine answer for a thinking partner, and often for coaching stories about their own work, where they glance at the board at most.
 
-**4. Check, rehearse, hand over.** Run `check` and fix everything. Write persona.md: who the user really is, how they talk, what they know, what annoys them, and three or four things they'll do (dodge a question, push back on a claim, say "pause", leave early). Honest, not flattering. Run `sim` (with `--draw` if the brief draws), read the judge's worst moment, fix the one thing behind it, run it once more. If the run ended before the close, raise `--turns` to reach its time, or have the persona leave early. Then tell them: run `npx apprenticer <dir>`, allow the microphone, start talking; come back to you afterwards to revise.
+**4. Check, rehearse, hand over.** Run `check` and fix everything. Write persona.md: who the user really is, how they talk, what they know and don't. Its triggers come from the user's own complaints, word for word, as things they will do: "if asked something nobody taught them, says 'how would I know that?' and goes flat"; "if asked something they've already answered, snaps". A persona without triggers passes anything: rehearsals scored 4 out of 5 on spaces the real user hated. Add three or four moves (dodge a question, push back on a claim, say "pause", leave early).
+- Run `sim` (with `--draw` if the brief draws). Read the judge's worst moment and its would-come-back evidence, fix the one thing behind them, run it once more. If the run ended before the close, raise `--turns` to reach its time, or have the persona leave early.
+- Then rehearse a second session: `sim --notes` twice in a row, so the second starts from the first one's notes, where beats that re-ask collide. Afterwards put the notes back: `cp -R sessions/<first run>/notes-before/. notes/`.
+- Hand over. They need an OpenAI key: run in a terminal, `npx apprenticer` asks for it once; started any other way it needs `OPENAI_API_KEY` or `~/.config/apprenticer/.env`. Tell them: run `npx apprenticer <dir>`, allow the microphone, start talking; come back to you afterwards to revise.
 
 ## The brief
 
 Write it to the mind, in the second person, about the user by name: prose for a smart reader. Most briefs land at 500 to 800 words, and that's fine; facts go in sources/, the brief carries a person, a purpose and an order.
 
-**Rank it.** The mind follows a brief's gist and drops its small print. In rehearsals it skipped a scripted "Noted. Next.", recapped despite "no recap", stopped a five-part feedback after one part, drifted off a one-stage plan into tangents, and a "neutral" teacher gave a recommendation. So:
+**Rank it.** The mind follows a brief's gist and drops its small print, and a brief patched rule by rule past about 1,000 words gets worse, not better. So:
 - Few rules. The two to four a session fails without go under Rules, near the top, one plain sentence each, naming the tempting case ("Never recommend for or against the project, even when she asks what to tell the council"). Say it again in the arc, at the beat where it bites.
 - Cut every line that wouldn't change what the mind does, and don't restate the runtime (Writing for a voice).
 - Say what to do with a tangent: answer it in a sentence or two and come back ("that's stage three; for now..."), or follow it when it's their real worry. Say nothing and the mind follows every one.
 - Write the close as numbered steps, each a turn with what it holds. The mind runs all of it before goodbye, over as many turns as it takes, even when they say they're going.
 - Time the arc. The mind sees the minutes each turn, so give it a clock: "at about 35 minutes, say 'That's time.' and start the close"; "by 15 minutes, push her to pick one".
+- Read the beats together. A warm-up, a review loop and a quick-fire close can each re-ask the same item, and one real session asked the same question five times that way. Walk one imaginary session through the whole arc, then the next one from its notes, and count how often each question gets asked.
 
 ```markdown
 # <What this is, in the user's words>
@@ -93,10 +102,11 @@ board or questions where they differ from the runtime's defaults.>
 <What to remember, and how to use the notes: where to open, what to skip, what to bring back.>
 ```
 
-- **Who you are**: adjectives ("tough but fair") give the mind nothing to do. An agenda, pet concerns and what satisfies each does: Dana has been burned by a migration left half-done, so she wants per-family rollback and a date the old system dies.
-- **Opening**: on a question or puzzle answerable from the board or from what they know ("Finish this sentence: peanut butter and what?"; "If we did nothing until next summer, what breaks first?"). Never an agenda ("Today we'll cover..."), never "what would you like to talk about?".
+- **Who you are**: adjectives ("tough but fair") give the mind nothing to do. An agenda, pet concerns and what satisfies each does: Dana has been burned by a migration left half-done, so she wants per-family rollback and a date the old system dies. One voice, one role: if the mind plays two (a coach and the interviewer), mark every switch the same way at the start of the line ("The CTO would ask: …"), never with jargon ("Stepping out.", "Back in.").
+- **Opening**: on a question or puzzle answerable from the board or from what they know ("Finish this sentence: peanut butter and what?"; "If we did nothing until next summer, what breaks first?"). Never an agenda ("Today we'll cover..."), never "what would you like to talk about?". Anything that opens every session (a tour, a warm-up) says when it stops in terms the mind can see ("skip it once they've said they know it"), never by a count the notes keep ("the first two rounds").
 - **Arc, for teaching**: show the mechanism working before asking them to reason about it. Each question must be answerable from what's on the board at that moment. Three to five questions a session; the rest is explanation. When they're wrong, run the mechanism again with their answer rather than just correcting them. Close with an explain-back: they walk through the idea, and the mind fills in only what's missing.
-- **Arc, for role-play**: the persona's concerns in order, how they react to a vague answer versus a good one.
+- **Arc, for role-play**: it tests what they already know. If the material is new to them, write a teaching space, or teach before each question; never open a mock on what the brief says is new. Give the scene before the question: a question about a system they've never seen needs the system first. Then the persona's concerns in order, and how they react to a vague answer versus a good one.
+- **Arc, for interview prep** about their own work: the questions they rated good, in order, and a shape for story answers (what it is, my part, the hard call, the result). The move users value most is "say it as me, better": after their first take, two sentences of feedback (one line that landed, quoted, and one fix); then a 60 to 90 second version in their voice, from their facts only; then one retake in their own words, and move on. Never a third take. When an answer already covers the next question, say so and skip it, or ask only for what's missing.
 - **Arc, for a thinking partner**: a loop, not beats: name the decision, surface what's assumed, push on the one assumption that matters most. Say whether the mind argues the other side, and that its own view comes after theirs (given first, it becomes the answer). Give it a deadline: by when they pick an option, and when numbers go on the pick.
 - **Next time**: the notes pass reads the brief to decide what to keep, so say what matters. Open on what's still open, never with a recap.
 
@@ -104,17 +114,19 @@ board or questions where they differ from the runtime's defaults.>
 
 Real-world claims (numbers, names, dates, how things work) must be true: from sources/ or a check you made. Practice props are fine: a fictional flat's listing, an interview's scale numbers, a menu. Write them into sources/ under a line saying they are props, so the mind holds them constant across sessions instead of making up new ones.
 
+Facts about the user's own work come only from them, in a source headed "use only these facts; never invent". The brief keeps what's built apart from what's planned ("the test I'd write", "it hasn't shipped yet"), and says, as the user decided it with you, what the mind does when they overstate in practice: flag it once, or let it go.
+
 ### Writing for a voice
 
-The runtime already has the mind talk in speech, not lists; about 50 to 90 words a turn; at most one question a turn; no "Great point", no "does that make sense?", no wrap-ups; scripted lines said word for word; the brief's close finished before goodbye. The brief's own rules on the board, turn length, pacing and questions override these defaults, so state them only where they differ. What the brief must add, because only it knows the session:
+The runtime already has the mind talk in speech, not lists; about 50 to 90 words a turn; at most one question a turn; no "Great point", no "does that make sense?" or "what stands out?", no wrap-ups; never asking again what they answered today, whatever the notes say; scripted lines said word for word; their question answered before the close starts, and the close finished before goodbye. The brief's own rules on the board, turn length, pacing and questions override these defaults, so state them only where they differ. What the brief must add, because only it knows the session:
 - **Length and pacing**: a VP talks in one or two sentences; an interviewer waits after every question ("after each question, wait; never carry on unprompted"); a language partner speaks slowly and briefly.
-- **Questions**: one short sentence with a real answer they can give in a sentence, from what they've been shown or already know. Never "what did you notice?" or "how does that strike you?", never one they've already answered ("I literally already answered that" is a real complaint). A prediction asks which way, or roughly how much, before the reveal. No arithmetic for them in teaching; when doing it is the skill (an interview's estimates), ask for it.
+- **Questions**: one short sentence with a real answer they can give in a sentence, from what they've been shown or already know. A check makes them produce a name or a result ("Which rule rejects it?"), never just yes or no. An explain-back asks for one idea, not two. A prediction asks which way, or roughly how much, before the reveal. No arithmetic for them in teaching; when doing it is the skill (an interview's estimates), ask for it.
 - **Scripted lines**: the mind says them literally, so script only what must be exact (the opening, "That's time."), written for the ear: short sentences, numbers as people say them, the visual's cue words in order.
 
 ## The board
 
 The board is optional. The mind drives it with unspoken lines. A turn may start with one of these; a turn without one keeps what's up:
-- `show <id>`: a prepared visual. Its first step is up at once, later ones on their cues. Showing the one already up changes nothing; showing it again after something else starts it fresh, without its moves.
+- `show <id>`: a prepared visual. Its first step is up at once, later ones on their cues. Showing the one already up changes nothing; showing it again after something else, or `clear` then `show` in one turn, starts it fresh, without its moves.
 - `draw <what>`: a drawing made on the spot, landing a couple of seconds into the turn. It shows only what the line describes, no added parts, so the brief names the parts ("draw the doc's four steps as a timeline, billing last"); a bare sentence renders as text. It replaces what was up.
 - `keep` leaves what's up; `clear` empties the board, which then shows the session title.
 
@@ -217,7 +229,7 @@ The leading comment is the instruction, so write it as one: what the note holds,
 
 ## Revise after a session
 
-When the user comes back:
+When the user comes back, first: if they were frustrated in two sessions running, stop patching. Go back to move 1 (run `init` again), ask whether the space practises the right thing, and be ready to start the brief over: move the old space aside and don't build on it. A fifth rule won't fix a space that drills the wrong thing. Otherwise:
 1. Read the newest `sessions/<ts>/transcript.md` in full. Mark where they were lost ("wait, what?", "what are you asking?"), bored (a run of "okay"s, short answers), cut the mind off, corrected it ("I already answered that"), or lit up (a follow-up, an explanation they gave unprompted).
 2. Check the brief against it: did each rule hold, and did the close run in full? A rule the mind dropped is buried or one of too many: move it into Rules, or cut others.
 3. Compare `notes-before/` with `notes/`. Did the update keep what matters and record their complaints? If it failed, run `npx apprenticer notes <dir>`. Hand-edit notes only to fix a wrong fact.

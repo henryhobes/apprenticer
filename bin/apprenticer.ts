@@ -2,6 +2,7 @@
 import { serve } from '@hono/node-server';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { config, packageFile, requireKey } from '../src/config.ts';
@@ -12,6 +13,7 @@ import { DEFAULT_MEMORY, openSpace, readMeta, readSpace, sessionDirs } from '../
 
 const USAGE = `apprenticer <dir>                    serve the space in <dir> on localhost and open it
 apprenticer init <dir>               start a new space
+apprenticer skill [dir]              install the skill that builds spaces, for Claude Code (default ~/.claude/skills/apprenticer)
 apprenticer check <dir>              check a space's files (no key, no model)
 apprenticer preview <dir>            serve and open only the visuals preview (no key)
 apprenticer notes <dir> [session]    save the notes for a session whose notes pass failed
@@ -37,9 +39,37 @@ function init(path: string) {
   make('visuals/.gitkeep', '');
   make('sources/.gitkeep', '');
   make('.gitignore', 'sessions/\n');
-  const agents = packageFile('template/AGENTS.md'); // the guide a coding agent follows to build the space
-  if (existsSync(agents)) { make('AGENTS.md', readFileSync(agents)); make('CLAUDE.md', '@AGENTS.md\n'); }
-  console.log(`\nOpen ${path} in your coding agent and tell it what you want to work on: it writes the brief, visuals and sources.\nThen: apprenticer ${path}`);
+  make('AGENTS.md', GUIDE().replace(/^---\n[\s\S]*?\n---\n+/, '')); // the skill, as the guide any coding agent follows in the space
+  make('CLAUDE.md', '@AGENTS.md\n');
+  console.log(INTERVIEW(path));
+}
+
+const GUIDE = () => readFileSync(packageFile('skill/SKILL.md'), 'utf8');
+
+// Printed by init, so the coding agent meets the interview as tool output, which it acts on at once: an
+// agent that already had a plan, or works from another folder, treated AGENTS.md as a reference and skipped it.
+const INTERVIEW = (path: string) => `
+Not a coding agent? Open ${path} in one and tell it what you want to work on.
+
+For the coding agent building this space: ${join(path, 'AGENTS.md')} is your instructions for it. Read all of it now, even if you already have a plan.
+
+Interview the user first. Ask these one at a time, in your own words, and wait for each answer. Don't answer them yourself from context or from earlier in the conversation: you may put your guess as the question ("Sounds like X. Right?"), but the user answers every one.
+1. What do you want to be able to do, when does it become real, and how long is a sitting?
+2. What will actually happen in that moment? What do you expect to be asked, or to need?
+3. Who are you in this: what do you know cold, and what's shaky?
+4. Who should the AI be? A teacher; a specific person (what do they want, what worries them, what would win them over?); a thinking partner; something else.
+5. What do you hate in conversations like this? Is there anything it should read?
+
+Then write the brief and read it back to them in three to five lines. Write no visuals or persona until they say yes to that read-back; a review by another model is not their yes.
+
+When it's built: apprenticer ${path}`;
+
+/** Puts the skill where Claude Code finds it, so it starts with the interview wherever the user asks for a space. */
+function installSkill(path = join(homedir(), '.claude', 'skills', 'apprenticer')) {
+  const target = join(resolve(path), 'SKILL.md');
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, GUIDE());
+  console.log(`installed ${target}\nIn Claude Code, say what you want to prepare for or learn ("help me prepare for my interview on Thursday"), or type /apprenticer.`);
 }
 
 function check(path: string) {
@@ -76,7 +106,7 @@ async function notes(path: string, which?: string) {
   await requireKey();
   const dir = openSpace(path).dir, sessions = sessionDirs(dir);
   const target = which ? sessions.find(s => basename(s).startsWith(which))
-    : [...sessions].reverse().find(s => !readMeta(s)?.notes && !readMeta(s)?.sim && existsSync(join(s, 'transcript.md')));
+    : [...sessions].reverse().find(s => [undefined, 'failed'].includes(readMeta(s)?.notes) && !readMeta(s)?.sim && existsSync(join(s, 'transcript.md')));
   if (!target || !existsSync(join(target, 'transcript.md'))) throw new Error(which ? `No session "${which}" with a transcript in ${dir}/sessions.` : 'Every session already has its notes.');
   const meta = await saveNotes(dir, target);
   console.log(meta.notes === 'skipped' ? `${basename(target)}: too short to keep notes` : `${basename(target)}: notes updated${meta.recap ? `\n${meta.recap.covered.map(c => `  - ${c}`).join('\n')}` : ''}`);
@@ -86,8 +116,9 @@ try {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
     user: { type: 'string' }, turns: { type: 'string' }, out: { type: 'string' }, tier: { type: 'string' }, help: { type: 'boolean', short: 'h' },
     draw: { type: 'boolean' }, notes: { type: 'boolean' }, 'no-notes': { type: 'boolean' }, 'no-open': { type: 'boolean' } } });
-  const [cmd, dir, extra] = ['init', 'check', 'notes', 'sim', 'preview'].includes(positionals[0]) ? positionals : ['serve', ...positionals];
-  if (values.help || !dir) console.log(USAGE);
+  const [cmd, dir, extra] = ['init', 'check', 'notes', 'sim', 'preview', 'skill'].includes(positionals[0]) ? positionals : ['serve', ...positionals];
+  if (cmd === 'skill' && !values.help) installSkill(dir);
+  else if (values.help || !dir) console.log(USAGE);
   else if (cmd === 'init') init(dir);
   else if (cmd === 'check') check(dir);
   else if (cmd === 'preview') await serveSpace(dir, !values['no-open'], true);

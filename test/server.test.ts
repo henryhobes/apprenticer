@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import * as board from '../src/board.ts';
+import { config } from '../src/config.ts';
 import { createApp, createPreviewApp } from '../src/server.ts';
 import { writeMeta } from '../src/space.ts';
 
@@ -38,6 +39,15 @@ test('the page, the space and the preview are served to localhost; any other hos
   assert.match(await (await createApp(tmpSpace({ 'brief.md': '# Empty' }), {} as any).request('/preview', local)).text(), /no visuals yet/);
 });
 
+test('ALLOW_HOST lets in the names it lists, exactly', async () => {
+  const { app } = setup();
+  config.allowHosts = ['mac.tail1234.ts.net'];
+  try {
+    assert.equal((await app.request('/', { headers: { host: 'MAC.tail1234.ts.net' } })).status, 200);
+    assert.equal((await app.request('/', { headers: { host: 'evil.tail1234.ts.net' } })).status, 404);
+  } finally { config.allowHosts = []; }
+});
+
 test('the preview app serves only the visuals preview, to localhost, and needs no client or key', async () => {
   const app = createPreviewApp(tmpSpace({ 'brief.md': '# Coach\n\nCoach me.', 'visuals/01-steps.html': STEPS }));
   assert.match(await (await app.request('/preview', local)).text(), /Three steps/);
@@ -58,7 +68,7 @@ test('a session is created over WebRTC with the voice settings, one at a time un
   assert.deepEqual(ran, ['live_1']);
   const second = await post(app);
   assert.equal(second.status, 409);
-  assert.match((await second.json()).error, /still running or saving its notes/);
+  assert.match((await second.json()).error, /still running, or saving its notes/);
   finish();
   await new Promise(r => setTimeout(r, 10));
   assert.equal((await post(app)).status, 200); // free again
@@ -71,7 +81,7 @@ test("today's limit stops a new session, and a space with no brief is refused", 
   writeMeta(path, { id: 'x', started_at: new Date().toISOString(), cost_usd: 25 });
   const res = await post(app);
   assert.equal(res.status, 429);
-  assert.match((await res.json()).error, /limit is reached/);
+  assert.match((await res.json()).error, /is spent · back tomorrow/);
   assert.deepEqual(ran, []);
   const bare = await post(createApp(tmpSpace({}), {} as any, async () => {}));
   assert.equal(bare.status, 500);

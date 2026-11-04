@@ -37,15 +37,19 @@
   body[data-state=connecting] #power { opacity: .6; }
   body[data-state=on] #power { box-shadow: 0 0 0 1.5px var(--ink-dim); }
   body.board #power, body[data-state=on] #power { left: calc(100% - 80px); top: calc(100% - 80px); width: 52px; height: 52px; font-size: 13px; }
-  body[data-state=on].speaking #power { animation: breathe 1.6s ease-in-out infinite; }
   body.board #power, body.board #mute { opacity: .55; } /* the board's one gold element is the drawing's */
   #power:hover, #mute:hover, #mute[aria-pressed=true] { opacity: 1; }
-  @keyframes breathe { 50% { transform: scale(1.08); } }
   #dock { position: fixed; right: 92px; bottom: 37px; display: flex; align-items: center; gap: 12px; visibility: hidden; }
   body[data-state=on] #dock { visibility: visible; }
   #mute { padding: 7px 16px; border-radius: 20px; background: var(--panel); color: var(--ink-dim); font-size: 13px; }
   #mute[aria-pressed=true] { background: var(--ink); color: #111214; }
   #cost { color: var(--ink-dim); font-size: 13px; font-variant-numeric: tabular-nums; opacity: .7; }
+  #cost.near b { color: var(--ink); } /* 80% of the day's cap */
+  #cost b { font-weight: inherit; }
+  /* The voice's sound as it reaches this page: if the bars move and you hear nothing, it's your speakers. */
+  #level { display: flex; align-items: center; gap: 2px; height: 12px; }
+  #level i { width: 3px; height: 2px; border-radius: 1px; background: var(--ink-dim); }
+  #level.loud i { background: var(--ink); }
 
   /* Idle, above the disc: the space's name and where you left off; after a session, what it covered. Text on the room, no panel. */
   #head { position: fixed; left: 50%; bottom: calc(50% + 108px); transform: translateX(-50%); width: min(520px, calc(100% - 48px)); text-align: center; transition: opacity .4s var(--ease); }
@@ -97,7 +101,7 @@
     </div>
   </div>
   <button id="power">On</button>
-  <div id="dock"><span id="cost"></span><button id="mute" aria-pressed="false">Mute</button></div>
+  <div id="dock"><span id="cost"></span><span id="level" aria-hidden="true" title="The voice's sound as it reaches this page"><i></i><i></i><i></i></span><button id="mute" aria-pressed="false">Mute</button></div>
   <div id="msg"></div>
   <audio id="remote" autoplay playsinline></audio>
 
@@ -125,19 +129,47 @@
 // GPT-Live runs over WebRTC; the server creates the session and runs the mind on its own
 // connection, and streams the board for the session that is live.
 const $ = id => document.getElementById(id);
-let pc, dc, mic, space = {}, startedAt = 0, spent = 0;
+let pc, dc, mic, audio, space = {}, startedAt = 0, spent = 0, lastLoud = 0;
 
 function setState(state, label) { document.body.dataset.state = state; $('power').textContent = label; }
 
 const HINT = 'Tap On. It asks for your microphone, then it speaks first.';
 function say(text, bad) { $('msg').textContent = text; $('msg').classList.toggle('bad', !!bad); }
 const dollars = usd => '$' + (Math.floor(usd * 20) / 20).toFixed(2); // in nickels, so it doesn't visibly tick
+const NO_SOUND = 'No sound is reaching this page. Tap Off, then On.';
+
+/** This session's cost, then the day's against the cap: "$1.20 · $6.40 of $20 today". */
+function showCost(usd, today) {
+  spent = usd;
+  const day = Object.assign(document.createElement('b'), { textContent: `${dollars(today)} of $${space.cap} today` });
+  $('cost').replaceChildren(`${dollars(usd)} · `, day);
+  $('cost').classList.toggle('near', today >= space.cap * 0.8);
+}
+
+/** Three bars that follow the loudness of the voice's audio as it arrives. */
+function meter(stream) {
+  if (!audio) return;
+  const analyser = audio.createAnalyser(), samples = new Uint8Array(256), bars = [...$('level').children];
+  analyser.fftSize = 256; analyser.smoothingTimeConstant = .8;
+  audio.createMediaStreamSource(stream).connect(analyser);
+  (function frame() {
+    if (!audio) return bars.forEach(b => b.style.height = '');
+    analyser.getByteTimeDomainData(samples);
+    const rms = Math.sqrt(samples.reduce((n, v) => n + ((v - 128) / 128) ** 2, 0) / samples.length), level = Math.min(1, rms * 6);
+    if (level > .08) lastLoud = Date.now();
+    $('level').classList.toggle('loud', level > .08);
+    [.7, 1, .5].forEach((k, i) => bars[i].style.height = `${2 + 10 * level * k}px`);
+    requestAnimationFrame(frame);
+  })();
+}
 
 async function on() {
   if ($('msg').classList.contains('bad')) say(''); // an old error; the first-run hint stays through the microphone prompt
   setState('connecting', '…');
   $('remote').play().catch(() => {}); // unlock audio inside the tap
   try {
+    audio = new AudioContext(); // for the level meter; made inside the tap so it may run
+    audio.resume().catch(() => {});
     mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     say('Connecting…');
     pc = new RTCPeerConnection();
@@ -145,8 +177,9 @@ async function on() {
     pc.ontrack = e => {
       $('remote').srcObject = e.streams[0];
       $('remote').play().catch(err => say(`No sound. Tap Off, then On. (${err.name})`, true));
-      setTimeout(() => { if (pc && ($('remote').paused || e.track.muted) && !$('msg').textContent) say('No sound? Tap Off, then On.', true); }, 3000);
+      setTimeout(() => { if (pc && ($('remote').paused || e.track.muted) && !$('msg').textContent) say('No sound is playing. Tap Off, then On.', true); }, 3000);
       e.track.onunmute = () => { if (!$('remote').paused) say(''); }; // a slow opening, not a fault
+      meter(e.streams[0]);
     };
     for (const track of mic.getAudioTracks()) pc.addTrack(track, mic);
     dc = pc.createDataChannel('oai-events');
@@ -168,7 +201,7 @@ async function on() {
     setState('on', 'Off');
     say('');
     delete document.body.dataset.recap; // the last session's recap stays until this one is really on
-    spent = 0; $('cost').textContent = dollars(0);
+    showCost(0, space.today ?? 0);
     startedAt = Date.now();
     navigator.wakeLock?.request('screen').catch(() => {});
   } catch (err) {
@@ -183,7 +216,8 @@ function off() {
   const closing = pc;
   setTimeout(() => closing?.close(), 1000); // let session.close reach the server first
   mic?.getTracks().forEach(t => t.stop());
-  pc = dc = mic = null;
+  audio?.close().catch(() => {});
+  pc = dc = mic = audio = null;
   $('mute').setAttribute('aria-pressed', 'false'); $('mute').textContent = 'Mute';
   setState('off', 'On');
 }
@@ -219,6 +253,7 @@ async function loadSpace() {
       .map(t => Object.assign(document.createElement('div'), { textContent: t })));
     if (!last && document.body.dataset.state === 'off' && !$('msg').textContent) say(HINT);
     if (last && $('msg').textContent === HINT) say('');
+    if (space.today >= space.cap && document.body.dataset.state === 'off') say(`Today's $${space.cap} is spent · back tomorrow`);
   } catch {}
 }
 
@@ -342,7 +377,7 @@ function onBoard(e) {
     document.body.classList.remove('asking');
   }
   if (e.type === 'term') setTerm(e.term);
-  if (e.type === 'cost') { spent = e.usd; $('cost').textContent = dollars(spent); }
+  if (e.type === 'cost') showCost(e.usd, e.today);
   if (e.type === 'recap') recap(e);
   if (e.type === 'set') set(e.arg);
   if (e.type === 'heard') heard(e.text);
@@ -367,7 +402,11 @@ function onBoard(e) {
 // the question, as soon as he's asked it.
 setInterval(() => {
   const pause = Date.now() - board.lastSaid, f = board.frame;
-  document.body.classList.toggle('speaking', pause < 900);
+  // Words are arriving but no sound has for 3 s: nothing is reaching this page. (The meter stops while the page is hidden.)
+  board.talkFrom = pause < 900 ? board.talkFrom || Date.now() : 0;
+  const silent = document.visibilityState === 'visible' && board.talkFrom && Date.now() - board.talkFrom > 3000 && Date.now() - lastLoud > 3000;
+  if (silent && !$('msg').textContent) say(NO_SOUND, true);
+  if (!silent && $('msg').textContent === NO_SOUND) say('');
   if (pause < 900 && f?.steps && Date.now() - f.lastStep > 8000) light(f, f.steps.findIndex(s => !s.dataset.shown), true);
   if (pause > 4000 && board.said) reveal(f, true);
   const q = board.question;
@@ -414,7 +453,7 @@ async function follow() {
   }
   looping = false;
 }
-document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' ? follow() : following?.abort());
+document.addEventListener('visibilitychange', () => { lastLoud = Date.now(); document.visibilityState === 'visible' ? follow() : following?.abort(); });
 follow();
 loadSpace();
 </script>

@@ -18,10 +18,12 @@ Needs Node 24+ and an `OPENAI_API_KEY`.
 
 ```bash
 git clone <this repo> && cd apprenticer && npm install && npm link   # puts `apprenticer` on your PATH
-apprenticer init ./my-space
+apprenticer skill    # for Claude Code: installs the skill that builds spaces
 ```
 
-Open `./my-space` in your coding agent (Claude Code, Codex, ...). `init` put an `AGENTS.md` there (and a `CLAUDE.md` that points at it) that tells it how to build a space with you: it interviews you, writes the brief, and builds the visuals. Then:
+Then, in Claude Code, say what you want: "help me prepare for my interview with a CTO on Thursday", "I want to understand how data centres get their power", or type `/apprenticer`. The skill makes the space, interviews you (what it's for, what will really happen, who the AI should be), reads the brief back for your yes, builds the visuals, and rehearses it against a simulated you.
+
+With another coding agent, run `apprenticer init ./my-space` and open that folder in it: `init` puts the same guide there as `AGENTS.md` (and a `CLAUDE.md` that points at it), and prints the interview for the agent to start with. Then:
 
 ```bash
 apprenticer ./my-space
@@ -42,7 +44,7 @@ my-space/
   sessions/       the runtime's: transcript, events, session.json, drawings, the notes as they were.
 ```
 
-A leading HTML comment in any file is a note to the mind. `template/AGENTS.md` is the full guide to writing one (`init` copies it into your space for your coding agent); `examples/design-review/` is a worked space.
+A leading HTML comment in any file is a note to the mind. `skill/SKILL.md` is the full guide to writing one (`apprenticer skill` installs it; `init` copies it into your space as `AGENTS.md`); `examples/design-review/` is a worked space.
 
 ## Commands
 
@@ -50,10 +52,11 @@ A leading HTML comment in any file is a note to the mind. `template/AGENTS.md` i
 |---|---|
 | `apprenticer <dir>` | serve the space on localhost and open it (`--no-open` to skip the browser). `/preview` shows every visual on its own board, with a button per `set` move and a box to type what's said |
 | `apprenticer preview <dir>` | serve and open only `/preview`, no API key needed: for writing visuals before there is a key. Serving a session still needs the key |
-| `apprenticer init <dir>` | start a space: a stub brief, `notes/memory.md`, `visuals/`, `sources/`, a `.gitignore`, and `AGENTS.md` for your coding agent |
+| `apprenticer init <dir>` | start a space: a stub brief, `notes/memory.md`, `visuals/`, `sources/`, a `.gitignore`, and `AGENTS.md` for your coding agent; prints the interview it starts with |
+| `apprenticer skill [dir]` | install the guide as a Claude Code skill, in `~/.claude/skills/apprenticer/` unless you give another folder |
 | `apprenticer check <dir>` | static checks, no key needed: a brief, a title sentence on every visual and note, a `data-cue` on every step after the first, sources under the cap. Exit code 1 on a problem |
 | `apprenticer notes <dir> [session]` | save the notes for a session whose notes update failed |
-| `apprenticer sim <dir> --user persona.md` | rehearse the space in text, no voice: the mind (same turn function and instructions as a real session; the pauses and going-on after silence aren't rehearsed) against a simulated user described in `persona.md` (the mind is told the session time and turn on a clock that runs at 150 words a minute and 3 s a turn; the user sees only what would be on their screen), then a judge scores the mind 1-5 on following the brief, adapting to the user, turns for a voice, board use, pushback and leaving, honesty and (in a later run) memory. `--turns 10`, `--out file.json`, `--draw` (really draw `draw` lines), `--tier ultrafast` for real-session latencies. The notes pass writes its result only into the run's own `sessions/<ts>/notes-after/`, so a rehearsal never touches your real memory; `--notes` applies it to `notes/` (so a second run tests memory), `--no-notes` skips the pass |
+| `apprenticer sim <dir> --user persona.md` | rehearse the space in text, no voice: the mind (same turn function and instructions as a real session; the pauses and going-on after silence aren't rehearsed) against a simulated user described in `persona.md` (the mind is told the session time and turn on a clock that runs at 150 words a minute and 3 s a turn; the user sees only what would be on their screen), then a judge scores the mind 1-5 on following the brief, adapting to the user, turns for a voice, board use, pushback and leaving, honesty, (in a later run) memory, and whether this user would come back, quoting the moment that would make them quit. `--turns 10`, `--out file.json`, `--draw` (really draw `draw` lines), `--tier ultrafast` for real-session latencies. The notes pass writes its result only into the run's own `sessions/<ts>/notes-after/`, so a rehearsal never touches your real memory; `--notes` applies it to `notes/` (so a second run tests memory), `--no-notes` skips the pass |
 
 ## Environment
 
@@ -66,15 +69,17 @@ A leading HTML comment in any file is a note to the mind. `template/AGENTS.md` i
 | `VOICE` | `vesper` | a GPT-Live voice |
 | `MIND_TIER` | `ultrafast` | the mind's answers: about 2 s each instead of 5, at 6x the price; `default` switches it off |
 | `MIND_PRICE` | `2,0.1,10` | what the mind costs, USD per million input, cached input and output tokens at the default tier (GPT-6.1 Sol's; set it if you change `MIND_MODEL`). Fast counts 2x, Ultrafast 6x; a web search $0.01 |
-| `DAILY_CAP_USD` | `10` | a new session is refused once today's sessions of this space cost this much |
+| `DAILY_CAP_USD` | `20` | a new session is refused once today's sessions of this space cost this much |
 | `PORT` | `8787` | the next free port is used if it's taken |
+| `ALLOW_HOST` | | other host names to serve, comma-separated, for reaching it from another device (below) |
 
 The cost on the page and the cap count voice minutes, web searches and the mind's tokens (its turns, drawings and notes pass, from each response's usage). A turn dropped because you kept talking costs tokens that aren't counted.
 
 ## Notes on how it runs
 
 - Localhost only, no login: the server binds to 127.0.0.1 and refuses any other `Host`. Everything in a space is sent to OpenAI.
-- One session at a time. The next can't start until the last one's notes are saved (a minute or so), so it never begins from stale notes.
+- From your phone or another computer: the microphone needs HTTPS, so put it behind `tailscale serve` on your tailnet and allow that name: `tailscale serve --bg 8787`, then `ALLOW_HOST=my-mac.tail1234.ts.net apprenticer ./my-space`, and open `https://my-mac.tail1234.ts.net`. Anyone on your tailnet can then use it, and your key.
+- One session at a time. The next can't start until the last one's notes are saved (a minute or so, two at most; if that fails, `apprenticer notes <dir>` runs it again), so it never begins from stale notes.
 - Voice only, no typing. The mind speaks first. After a point that isn't a question, it carries on if you stay quiet (up to four turns in a row, so walking away doesn't run up a bill); after a question it waits. Sessions end at GPT-Live's two-hour limit (a warning at 105 minutes).
 - Node runs the TypeScript directly, so developing needs no build: `npm test`, `npm run typecheck`, `npm start -- ./my-space` (or `node bin/apprenticer.ts ./my-space`). Node won't run TypeScript from inside `node_modules`, so what is published is compiled: `npm run build` writes `dist/` (the `apprenticer` command runs it; `npm install`, `npm pack` and `npm publish` build it first).
 
