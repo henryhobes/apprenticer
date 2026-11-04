@@ -7,6 +7,7 @@ import { test } from 'node:test';
 
 const bin = new URL('../bin/apprenticer.ts', import.meta.url).pathname;
 const run = (...args: string[]) => spawnSync(process.execPath, [bin, ...args], { encoding: 'utf8', env: { ...process.env, OPENAI_API_KEY: '' } });
+const HINT = 'For an agent that keeps its skills elsewhere: apprenticer skill <its skills folder>/apprenticer';
 
 test('check passes a good space and fails, with what to fix, on a bad one', () => {
   const good = run('check', tmpSpace({ 'brief.md': '# Good\n\nBe good.', 'visuals/a.html': STEPS, 'notes/m.md': '<!-- Memory. -->' }));
@@ -34,10 +35,23 @@ test('init makes a starting space, keeps what is already there, and ends up pass
   assert.match(first.stdout, /Interview the user first[\s\S]*5\. What do you hate/);
 });
 
-test('skill installs the guide as a skill, front-matter and all', () => {
+test('skill installs the guide as a skill, front-matter and all, and stays quiet about other folders when told one', () => {
   const dir = join(tmpSpace({}), 'skills', 'apprenticer');
-  assert.equal(run('skill', dir).status, 0);
+  const result = run('skill', dir);
+  assert.equal(result.status, 0);
   assert.equal(readFileSync(join(dir, 'SKILL.md'), 'utf8'), readFileSync(new URL('../skill/SKILL.md', import.meta.url), 'utf8'));
+  assert.doesNotMatch(result.stdout, /keeps its skills elsewhere/);
+});
+
+test('skill with no folder installs to Claude Code and says where another agent puts its skills', () => {
+  const home = tmpSpace({});
+  const result = spawnSync(process.execPath, [bin, 'skill'], { encoding: 'utf8', env: { ...process.env, OPENAI_API_KEY: '', HOME: home, USERPROFILE: home } });
+  assert.equal(result.status, 0);
+  const target = join(home, '.claude', 'skills', 'apprenticer', 'SKILL.md');
+  assert.ok(existsSync(target), target);
+  assert.equal(readFileSync(target, 'utf8'), readFileSync(new URL('../skill/SKILL.md', import.meta.url), 'utf8'));
+  assert.match(result.stdout, /installed .*\.claude/);
+  assert.ok(result.stdout.includes(HINT), result.stdout);
 });
 
 test('a persona.md at the space root (for sim) is not a problem for check', () => {

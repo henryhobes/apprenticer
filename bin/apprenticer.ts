@@ -64,12 +64,12 @@ Then write the brief and read it back to them in three to five lines. Write no v
 
 When it's built: apprenticer ${path}`;
 
-/** Puts the skill where a coding agent finds it (Claude Code's folder unless told otherwise), so it starts with the interview wherever the user asks for a space. */
-function installSkill(path = join(homedir(), '.claude', 'skills', 'apprenticer')) {
-  const target = join(resolve(path), 'SKILL.md');
+/** Puts the skill where a coding agent finds it (Claude Code's folder unless told otherwise), so it starts with the interview wherever the user asks for a space. The folder stays optional rather than defaulted in the signature, so the hint below can tell whether one was given. */
+function installSkill(dir?: string) {
+  const target = join(resolve(dir ?? join(homedir(), '.claude', 'skills', 'apprenticer')), 'SKILL.md');
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, GUIDE());
-  console.log(`installed ${target}\nIn your coding agent, say what you want to rehearse or learn out loud ("I want to rehearse my interview on Thursday"), or call the skill by name (/apprenticer).${path ? '' : '\nFor an agent that keeps its skills elsewhere: apprenticer skill <its skills folder>/apprenticer'}`);
+  console.log(`installed ${target}\nIn your coding agent, say what you want to rehearse or learn out loud ("I want to rehearse my interview on Thursday"), or call the skill by name (/apprenticer).${dir ? '' : '\nFor an agent that keeps its skills elsewhere: apprenticer skill <its skills folder>/apprenticer'}`);
 }
 
 function check(path: string) {
