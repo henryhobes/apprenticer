@@ -4,13 +4,7 @@ Talk to an AI about anything, by voice, in your browser, with a board beside it 
 
 You don't configure it. Your coding agent writes a **space**, a plain folder; Apprenticer serves it on localhost and you talk. The space's brief decides how the AI behaves: nothing about teaching or interviewing is built in.
 
-```
-you ⇄ browser (WebRTC) ⇄ OpenAI GPT-Live: the voice and ears only
-                              │ each of your turns is handed to this server
-                         the mind (GPT-6.1 Sol) writes every word, from your space
-                              │ when you stop
-                         the mind rewrites its notes, so next time it remembers
-```
+**How a turn works.** You talk; OpenAI's voice model (GPT-Live) hears you and hands your words to the Apprenticer server on your computer. The server asks the mind (GPT-6.1 Sol, a text model that has read your space) what to say. The mind writes the reply and anything for the board; the voice speaks it and the board updates. The voice only listens and talks: every word comes from the mind. When you end the session, the mind rewrites its notes, so next time it remembers you.
 
 ## Quick start
 
