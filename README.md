@@ -91,4 +91,6 @@ git clone https://github.com/henryhobes/apprenticer && cd apprenticer && npm ins
 npm test && npm run typecheck
 ```
 
+The showcase page in `docs/` (served by GitHub Pages) is built from `examples/what-is-a-gpu/` by `npm run site`; a test fails if it is out of date with the space.
+
 MIT licensed.
