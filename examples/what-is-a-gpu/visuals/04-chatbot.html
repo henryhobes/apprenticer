@@ -1,0 +1,53 @@
+<!-- What one token costs a chatbot. For beat 4. A calculation in two lines. First, "70 billion weights × 2 bytes = 140 GB": what the model reads from memory for every token it writes. Second, as you say "bandwidth": "3.35 TB/s ÷ 140 GB = 24 tokens/s", the 24 in gold, set entirely by memory. In the turn that shows it, say "weights" and then "bandwidth". "set int8": the 2 bytes become 1, the 140 GB becomes 70 in both lines, and the 24 counts up to 48: make it in the turn after Alex predicts what one byte per weight would do, and say the arithmetic didn't change, only the storage. The 70-billion-weight model is the sources' example size, with one user and weight reads dominating the traffic. Not on the board, also from the sources: at bf16 the H100 is using about 0.34% of its peak arithmetic, and 0.68% after int8. -->
+<style>
+  .big{fill:var(--ink);font-size:64px}
+  .op{fill:var(--ink-dim);font-size:56px}
+  .unit{fill:var(--ink-dim);font-size:26px}
+  .res{fill:var(--gold);font-size:72px}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <text class="big" x="100" y="320">70<tspan class="unit" dx="12">billion weights</tspan></text>
+    <text class="op" x="500" y="320" text-anchor="middle">×</text>
+    <text class="big" x="560" y="320"><tspan id="b1">2</tspan><tspan class="unit" dx="12" id="u1">bytes</tspan></text>
+    <text class="op" x="800" y="320" text-anchor="middle">=</text>
+    <text class="big" x="860" y="320"><tspan id="m1">140</tspan><tspan class="unit" dx="12">GB</tspan></text>
+  </g>
+  <g class="step" data-cue="bandwidth">
+    <text class="big" x="100" y="500">3.35<tspan class="unit" dx="12">TB/s</tspan></text>
+    <text class="op" x="500" y="500" text-anchor="middle">÷</text>
+    <text class="big" x="560" y="500"><tspan id="m2">140</tspan><tspan class="unit" dx="12">GB</tspan></text>
+    <text class="op" x="800" y="500" text-anchor="middle">=</text>
+    <text class="res" x="860" y="500"><tspan id="tok">24</tspan><tspan class="unit" dx="12">tokens/s</tspan></text>
+  </g>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+const modes = { bf16: { bytes: 2, gb: 140, tok: 24 }, int8: { bytes: 1, gb: 70, tok: 48 } };
+let mode = 'bf16', shown = 24, raf = 0;
+function apply(m) {
+  const v = modes[m];
+  $('b1').textContent = v.bytes;
+  $('u1').textContent = v.bytes === 1 ? 'byte' : 'bytes';
+  $('m1').textContent = v.gb;
+  $('m2').textContent = v.gb;
+}
+function count(to) {
+  cancelAnimationFrame(raf);
+  const from = shown, t0 = performance.now(), dur = 1000;
+  const tick = now => {
+    const t = Math.min(1, (now - t0) / dur), k = 1 - Math.pow(1 - t, 3);
+    shown = Math.round(from + (to - from) * k);
+    $('tok').textContent = shown;
+    if (t < 1) raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+}
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m !== 'int8' || m === mode) return;
+  mode = m;
+  apply(m);
+  count(modes[m].tok);
+});
+</script>

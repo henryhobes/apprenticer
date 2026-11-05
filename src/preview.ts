@@ -1,6 +1,6 @@
-import type { Space } from './space.ts';
+import type { Space, Visual } from './space.ts';
 
-const esc = (s: string) => s.replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
+export const esc = (s: string) => s.replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
 
 // Inside each board, as on the real one: parts come up one at a time or as their cue words are typed;
 // with its labels off, a label comes back when it's named.
@@ -27,23 +27,33 @@ const helper = `<script>
 })();
 </script>`;
 
+/** The base styles every visual is drawn on, from the app's page (public/index.html). */
+export const baseStyles = (index: string) => index.match(/<template id="base">([\s\S]*?)<\/template>/)![1];
+
+/** A visual as its own document, on the base styles, taking the board's messages (next, all, said, set). */
+export const boardDoc = (base: string, v: Visual) => `<!doctype html><meta charset="utf-8"><meta name="color-scheme" content="dark">${base}${v.html}${helper}`;
+
+/** The moves a visual's note names ("set play", ...). */
+export function moves(v: Visual): string[] {
+  const named = [...new Set([...v.when.matchAll(/"set ([^"]+)"/g)].map(m => m[1]))];
+  return named.filter(m => !named.some(o => o.startsWith(`${m} `))); // "set bet" alone is a reminder; "set bet billion" is the move
+}
+
 /**
  * Every visual of the space on its own board, close to how the person sees it, with its note, a button for each
  * move the note names ("set play", ...), and a line to type what's said. `index` is the app's page,
  * which carries the base styles every visual is drawn on.
  */
 export function previewPage(space: Space, index: string): string {
-  const base = index.match(/<template id="base">([\s\S]*?)<\/template>/)![1];
+  const base = baseStyles(index);
   const boards = space.visuals.map(v => {
-    const named = [...new Set([...v.when.matchAll(/"set ([^"]+)"/g)].map(m => m[1]))];
-    const moves = named.filter(m => !named.some(o => o.startsWith(`${m} `))); // "set bet" alone is a reminder; "set bet billion" is the move
-    const doc = `<!doctype html><meta charset="utf-8"><meta name="color-scheme" content="dark">${base}${v.html}${helper}`;
+    const doc = boardDoc(base, v);
     return `<section class="board" id="v${esc(v.id)}">
   <header><span class="id">${esc(v.id)}</span><h2>${esc(v.title)}</h2></header>
   <div class="frame"><iframe title="${esc(v.title)}" srcdoc="${esc(doc)}"></iframe></div>
   <div class="controls">
     <button data-cmd="next">Next part</button><button data-cmd="all">All parts</button><button data-cmd="reset">Start over</button>
-    ${moves.map(m => `<button data-set="${esc(m)}"><code>set ${esc(m)}</code></button>`).join('')}
+    ${moves(v).map(m => `<button data-set="${esc(m)}"><code>set ${esc(m)}</code></button>`).join('')}
     <form><input placeholder="Type what's said, then Enter" aria-label="Words said"></form>
   </div>
   <p class="note"><b>The note to the mind.</b> ${esc(v.when) || '(none)'}</p>

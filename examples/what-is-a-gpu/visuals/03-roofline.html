@@ -1,0 +1,109 @@
+<!-- The roofline for the H100, with the EPYC beside it. For beat 3, again in beat 4 for the chatbot and batching, and in the close for the explain-back. A log-log chart: across, operations per byte (1, 100, 1,000 marked); up, operations per second. The H100's roof is a slope that climbs, labelled "bandwidth" with "3.35 TB/s", meeting a flat line labelled "peak" with "989.4 TFLOP/s"; where they meet, a mark labelled "ridge" with "295" in grey. The EPYC's lower roof comes up dashed and grey as you say "CPU", with its ridge at "23.7". In the turn that shows it, say "bandwidth", "peak", "ridge" and then "CPU". "set matmul" puts a gold dot on the H100's slope at 100 operations per byte, "33.9%" of peak beside it: a typical matrix multiply. "set chatbot" puts the dot at 1 operation per byte, "0.34%": a chatbot answering one person. "set batch" slides the dot from 1 up the slope to the ridge, the percentage counting up to "100%" with "batch of 295" in grey: make it as you explain that one read of the weights serves every user in the batch. For the close, "set labels off" hides bandwidth, peak and ridge; each comes back as Alex says it. -->
+<style>
+  .axis{fill:none;stroke:var(--faint);stroke-width:2}
+  .tk{fill:var(--ink-dim);font-size:24px}
+  .roof{fill:none;stroke:var(--ink);stroke-width:3}
+  .epyc{fill:none;stroke:var(--ink-dim);stroke-width:2;stroke-dasharray:8 8}
+  .lbl{fill:var(--ink);font-size:28px}
+  .val{fill:var(--ink);font-size:26px}
+  .dim{fill:var(--ink-dim);font-size:26px}
+  .big{fill:var(--ink);font-size:64px}
+  .unit{fill:var(--ink-dim);font-size:26px}
+  .ridge{fill:var(--bg);stroke:var(--ink);stroke-width:2}
+  .ridge.cpu{stroke:var(--ink-dim)}
+  #dot{fill:var(--gold);opacity:0}
+  #pct{opacity:0}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <path class="axis" d="M150 96 V610 H1100"/>
+    <path id="ticks" class="axis"/>
+    <text class="tk" id="t1" text-anchor="middle" y="646">1</text>
+    <text class="tk" id="t100" text-anchor="middle" y="646">100</text>
+    <text class="tk" id="t1000" text-anchor="middle" y="646">1,000</text>
+    <text class="tk" x="625" y="686" text-anchor="middle">operations per byte</text>
+    <text class="tk" transform="translate(88 353) rotate(-90)" text-anchor="middle">operations per second</text>
+  </g>
+  <g class="step" data-cue="bandwidth">
+    <path id="slope" class="roof draw" pathLength="1"/>
+    <g id="bwl"><text class="val" y="-22" text-anchor="middle">3.35<tspan class="unit" dx="8">TB/s</tspan></text>
+      <text class="lbl label" data-cue="bandwidth" y="-56" text-anchor="middle">bandwidth</text></g>
+  </g>
+  <g class="step" data-cue="peak">
+    <path id="flat" class="roof draw" pathLength="1"/>
+    <text class="lbl label" data-cue="peak" id="pk1" text-anchor="end">peak</text>
+    <text class="val" id="pk2" text-anchor="end">989.4<tspan class="unit" dx="8">TFLOP/s</tspan></text>
+  </g>
+  <g class="step" data-cue="ridge">
+    <circle id="rdg" class="ridge" r="9"/>
+    <text class="lbl label" data-cue="ridge" id="rg1">ridge</text>
+    <text class="dim" id="rg2">295</text>
+  </g>
+  <g class="step" data-cue="cpu|epyc">
+    <path id="epyc" class="epyc"/>
+    <circle id="erd" class="ridge cpu" r="8"/>
+    <text class="dim" id="e1" text-anchor="end">CPU</text>
+    <text class="dim" id="e2">23.7</text>
+  </g>
+  <circle id="dot" r="11"/>
+  <text id="pct" text-anchor="end"><tspan id="bn" class="unit" display="none">batch of 295</tspan><tspan id="pv" class="big">33.9</tspan><tspan class="unit" dx="4">%</tspan></text>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+const BW = 3.35e12, PK = 989.4e12, EBW = 460.8e9, EPK = 10.9e12;
+const X0 = 150, X1 = 1100, YB = 610, YT = 96, YLO = 11, YHI = Math.log10(2e15);
+const X = I => X0 + (Math.log10(I) + 1) / 5 * (X1 - X0);
+const Y = v => YB - (Math.log10(v) - YLO) / (YHI - YLO) * (YB - YT);
+const RIDGE = PK / BW, ERIDGE = EPK / EBW;
+const put = (id, o) => { const el = $(id); for (const k in o) el.setAttribute(k, o[k]); };
+const f = n => n.toFixed(1);
+
+put('ticks', { d: [1, 10, 100, 1000].map(I => `M${f(X(I))} 610 v8`).join(' ') });
+[1, 100, 1000].forEach(I => put('t' + I, { x: f(X(I)) }));
+put('slope', { d: `M${f(X(0.1))} ${f(Y(BW * 0.1))} L${f(X(RIDGE))} ${f(Y(PK))}` });
+put('flat', { d: `M${f(X(RIDGE))} ${f(Y(PK))} H${f(X(1e4))}` });
+put('pk1', { x: f(X1), y: f(Y(PK) + 44) });
+put('pk2', { x: f(X1), y: f(Y(PK) + 78) });
+put('rdg', { cx: f(X(RIDGE)), cy: f(Y(PK)) });
+put('rg1', { x: f(X(RIDGE) + 20), y: f(Y(PK) + 44) });
+put('rg2', { x: f(X(RIDGE) + 20), y: f(Y(PK) + 78) });
+const Ic = 1e11 / EBW;
+put('epyc', { d: `M${f(X(Ic))} ${YB} L${f(X(ERIDGE))} ${f(Y(EPK))} H${f(X(1e4))}` });
+put('erd', { cx: f(X(ERIDGE)), cy: f(Y(EPK)) });
+put('e1', { x: f(X1), y: f(Y(EPK) - 16) });
+put('e2', { x: f(X(ERIDGE) + 18), y: f(Y(EPK) + 34) });
+
+const ang = Math.atan2(Y(BW * 10) - Y(BW), X(10) - X(1)) * 180 / Math.PI;
+const onSlope = I => `translate(${f(X(I))} ${f(Y(BW * I))}) rotate(${f(ang)})`;
+$('bwl').setAttribute('transform', onSlope(6));
+
+let mode = '', raf = 0;
+function place(I) {
+  const p = Math.min(1, I * BW / PK) * 100;
+  const cx = X(I), cy = Y(Math.min(PK, BW * I));
+  put('dot', { cx: f(cx), cy: f(cy) });
+  put('pct', { x: f(cx + 20), y: f(Math.max(cy - 40, 108)) });
+  $('pv').textContent = p < 1 ? p.toFixed(2) : p < 99.95 ? p.toFixed(1) : '100';
+  $('dot').style.opacity = 1; $('pct').style.opacity = 1;
+}
+function slide() {
+  const t0 = performance.now(), dur = 1500, span = Math.log10(RIDGE);
+  const tick = now => {
+    const t = Math.min(1, (now - t0) / dur);
+    const k = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    place(t === 1 ? RIDGE : Math.pow(10, span * k));
+    if (t < 1) raf = requestAnimationFrame(tick);
+    else $('bn').removeAttribute('display');
+  };
+  raf = requestAnimationFrame(tick);
+}
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (!['matmul', 'chatbot', 'batch'].includes(m) || m === mode) return;
+  mode = m;
+  cancelAnimationFrame(raf);
+  $('bn').setAttribute('display', 'none');
+  if (m === 'matmul') place(100);
+  else { place(1); if (m === 'batch') slide(); }
+});
+</script>

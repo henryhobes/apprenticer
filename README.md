@@ -40,7 +40,7 @@ my-space/
   sessions/       the runtime's: transcript, events, session.json, drawings, the notes as they were.
 ```
 
-A leading HTML comment in any file is a note to the mind. `skill/SKILL.md` is the full guide to writing one (`apprenticer skill` installs it; `init` copies it into your space as `AGENTS.md`); `examples/design-review/` is a worked space.
+A leading HTML comment in any file is a note to the mind. `skill/SKILL.md` is the full guide to writing one (`apprenticer skill` installs it; `init` copies it into your space as `AGENTS.md`); `examples/design-review/` is a worked space. `examples/what-is-a-gpu/` is a teaching one: a 20-minute tutor on why AI runs on GPUs.
 
 ## Commands
 
@@ -90,5 +90,7 @@ npm run typecheck
 git clone https://github.com/henryhobes/apprenticer && cd apprenticer && npm install && npm link
 npm test && npm run typecheck
 ```
+
+The showcase page in `docs/` (served by GitHub Pages) is built from `examples/what-is-a-gpu/` by `npm run site`; a test fails if it is out of date with the space.
 
 MIT licensed.

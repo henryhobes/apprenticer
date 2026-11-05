@@ -1,0 +1,74 @@
+<!-- CPU cores against GPU lanes. Up from the opening line. On the left, the EPYC's 96 cores as a grid of small squares, "96 cores" under it; on the right, the H100's 16,896 lanes as one finely gridded block, "16,896 lanes" under it in gold. The cores are up at once; the lanes come up as you say "lanes", so the opening line names the cores first. Nothing changes until Alex has answered the opening question. "set mixed": the same work split into 100 different kinds. Every core stays busy, but on the GPU only a thin strip of lanes lights, sweeping across the block one kind per tick. Under the lanes "100 ticks" in gold, under the cores "88 ticks": about even, with the GPU drawing up to 700 W against 360 W. Make it in the turn after Alex's prediction. "set same": the work is all one kind; the whole block lights at once, "1 tick" under the lanes in gold, "88 ticks" under the cores. Both get the same 16,896 pieces of work; the ticks are the sources' model (one piece per lane per tick, a core does 2), so call them a simplification if asked. -->
+<style>
+  .core{fill:var(--panel);stroke:var(--faint);stroke-width:2;transition:fill .5s var(--ease),stroke .5s var(--ease)}
+  #cores.busy .core{fill:color-mix(in srgb,var(--ink) 40%,var(--panel));stroke:var(--ink-dim)}
+  .lbl{fill:var(--ink);font-size:32px;transition:fill .5s var(--ease)}
+  .big{fill:var(--ink);font-size:64px;transition:fill .5s var(--ease),opacity .5s var(--ease)}
+  .unit{fill:var(--ink-dim);font-size:26px}
+  .hot{fill:var(--gold)}
+  .tick{opacity:0}
+  .tick.on{opacity:1}
+  #lit,#strip{opacity:0;fill:var(--ink);fill-opacity:.4;transition:opacity .5s var(--ease)}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <pattern id="grid" width="4" height="4" patternUnits="userSpaceOnUse">
+      <path d="M4 0 V4 M0 4 H4" fill="none" stroke="var(--faint)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <g class="step">
+    <g id="cores"></g>
+    <text class="lbl label" data-cue="cores" id="lc" x="261" y="520" text-anchor="middle">96 cores</text>
+    <text class="big tick" id="tc" x="261" y="615" text-anchor="middle"><tspan id="tcn">88</tspan><tspan class="unit" dx="10">ticks</tspan></text>
+  </g>
+  <g class="step" data-cue="lanes">
+    <rect x="612" y="190" width="528" height="266" fill="var(--panel)"/>
+    <rect id="lit" x="612" y="190" width="528" height="266" opacity="0"/>
+    <rect id="strip" x="612" y="190" width="6" height="266"/>
+    <rect x="612" y="190" width="528" height="266" fill="url(#grid)"/>
+    <rect x="612" y="190" width="528" height="266" rx="6" fill="none" stroke="var(--ink-dim)" stroke-width="2"/>
+    <text class="lbl hot label" data-cue="lanes" id="ll" x="876" y="520" text-anchor="middle">16,896 lanes</text>
+    <text class="big tick" id="tl" x="876" y="615" text-anchor="middle"><tspan id="tln">100</tspan><tspan class="unit" dx="10" id="tlu">ticks</tspan></text>
+  </g>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+const cores = $('cores');
+for (let i = 0; i < 96; i++) {
+  const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  r.setAttribute('class', 'core');
+  r.setAttribute('x', 61 + (i % 12) * 34);
+  r.setAttribute('y', 191 + Math.floor(i / 12) * 34);
+  r.setAttribute('width', 26); r.setAttribute('height', 26); r.setAttribute('rx', 6);
+  cores.appendChild(r);
+}
+let mode = '', sweep = null;
+function ticks(lanes, laneUnit, hot) {
+  $('tcn').textContent = '88';
+  $('tln').textContent = lanes;
+  $('tlu').textContent = laneUnit;
+  $('tc').classList.add('on'); $('tl').classList.add('on');
+  $('tc').classList.toggle('hot', hot === 'tc');
+  $('tl').classList.toggle('hot', hot === 'tl');
+  $('ll').classList.remove('hot');
+}
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if ((m !== 'mixed' && m !== 'same') || m === mode) return;
+  mode = m;
+  if (sweep) { sweep.cancel(); sweep = null; }
+  cores.classList.add('busy');
+  if (m === 'same') {
+    $('strip').style.opacity = 0;
+    $('lit').style.opacity = 1;
+    ticks('1', 'tick', 'tl');
+  } else {
+    $('lit').style.opacity = 0;
+    $('strip').style.opacity = 1;
+    sweep = $('strip').animate(
+      [{ transform: 'translateX(0)' }, { transform: 'translateX(522px)' }],
+      { duration: 3000, easing: 'steps(99, jump-end)', fill: 'forwards' });
+    ticks('100', 'ticks', 'tl');
+  }
+});
+</script>

@@ -39,6 +39,7 @@
     "start": "node bin/apprenticer.ts",
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
+    "site": "node src/site.ts docs",
     "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build"
   },
