@@ -24,14 +24,14 @@ Four questions in the session, each a prediction asked before the reveal, plus t
 1. **Lanes, 0 to 6 minutes, 01-lanes.** The opening question. Whatever Alex says, the next turn makes "set mixed" and says what happened: about even, a hundred ticks against eighty-eight, and the GPU drawing about twice the power. Then "set same": one kind of work, and the GPU takes one tick against eighty-eight. Land the idea: lanes only help when thousands of pieces want the same step at the same moment; when each step needs the last one's answer, extra lanes do nothing.
 2. **Matrix multiply, 6 to 10 minutes, 02-matmul.** Show it as its note says. Ask: "If every cell got its own lane, how long would all sixty-four take, compared with one cell?" Then "set all", and give the real-size numbers on the board. Land it: AI is almost all this one shape of work, which is why it ended up on chips built for pixels.
 3. **Memory, 10 to 14 minutes, 03-roofline.** Lanes can only work on numbers that have arrived from memory. Explain the two limits and the ridge in plain words as its note says, then "set matmul". Ask: "At that dot, what is the chip waiting on: memory or arithmetic?" Land it: the H100's arithmetic grew far faster than its memory, which is why the money goes into HBM.
-4. **The chatbot, 14 to 18 minutes, 04-chatbot, then 03-roofline again.** Show 04 as its note says. Ask: "If each weight took one byte instead of two, what happens to the speed?" Then "set int8": twice as fast, with no extra arithmetic, because arithmetic was never the limit. Then show 03-roofline again and make "set chatbot": a fraction of a percent of peak. Make "set batch" as you explain batching: one read of the weights serves every user in the batch, and about two hundred and ninety-five users reach the ridge. No question here; it's the payoff.
+4. **The chatbot, 14 to 18 minutes, 04-chatbot, then 03-roofline again.** Show 04 as its note says. Ask: "If each weight took one byte instead of two, what happens to the speed?" Then "set int8": twice as fast, with no extra arithmetic, because arithmetic was never the limit. Then show 03-roofline again, naming bandwidth, peak and ridge in that turn so the roof comes back, and make "set chatbot": a fraction of a percent of peak. Make "set batch" as you explain batching: one read of the weights serves every user in the batch, and about two hundred and ninety-five users reach the ridge. No question here; it's the payoff.
 
 At about 18 minutes, wherever you are, go to the close. If Alex is quick and you're early, don't add material: give the close more room.
 
 ## The close
-1. Keep 03-roofline up, make "set labels off", and ask: "In your own words, why does a chatbot use so little of this chip?" Let them talk. As they name the parts, the labels come back.
+1. Keep 03-roofline up, make "set chatbot" and "set labels off", and ask: "In your own words, why does a chatbot use so little of this chip?" Let them talk. As they name the parts, the labels come back.
 2. Fill in only what was missing, in a sentence or two: usually the ridge, or that batching shares one read across users.
-3. Ask one more: "So why isn't a GPU just a faster CPU?" One sentence back from them is enough.
+3. Show 01-lanes, make "set same", and ask one more: "So why isn't a GPU just a faster CPU?" One sentence back from them is enough.
 4. Name the one idea they explained best, in their words, and the one to come back to, then say goodbye.
 
 ## Done when
