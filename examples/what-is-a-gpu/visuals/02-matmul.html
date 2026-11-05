@@ -1,0 +1,80 @@
+<!-- An 8 by 8 matrix multiply, cell by cell. For beat 2, after the lanes. Two small 8x8 grids of numbers (dots, no digits) and their 8x8 answer grid: the first grid at the left, the second above the answer. One row of the first grid and one column of the second are lit, and the answer cell where they cross is gold: that cell is those 8 pairs multiplied and added up. Under the answer grid, "512 multiply-adds" in grey. In the turn that shows it, say "cell" once you have said what one cell is: on "cell" the answer fills one cell at a time, row by row, over about five seconds, the lit row and column following the gold cell, to show that no cell waits on any other. Then ask the prediction. "set all": every cell lights at once, and at the right the real size comes up: "4,096 × 4,096" in grey, then "68.7 s" on one lane and "4.07 ms" on 16,896 lanes, the 4.07 ms in gold. Make it in the turn after Alex answers. Those two times are the sources' model (one multiply-add per lane per nanosecond, perfect sharing); the point is the ratio, which is just the number of lanes. -->
+<style>
+  .cell{fill:color-mix(in srgb,var(--ink) 16%,var(--panel));stroke:var(--faint);stroke-width:2;transition:fill .4s var(--ease),stroke .4s var(--ease)}
+  .c .cell{fill:var(--panel)}
+  .cell.lit{fill:color-mix(in srgb,var(--ink) 45%,var(--panel));stroke:var(--ink-dim)}
+  .cell.gold{fill:var(--gold);stroke:var(--gold)}
+  .cap{fill:var(--ink-dim);font-size:28px}
+  .big{fill:var(--ink);font-size:64px}
+  .unit{fill:var(--ink-dim);font-size:26px}
+  .size{fill:var(--ink-dim);font-size:36px}
+  .real{opacity:0;transition:opacity .5s var(--ease)}
+  body.all .real{opacity:1}
+  .gold-n{fill:var(--gold)}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <g id="gA"></g>
+    <g id="gB"></g>
+    <g id="gC" class="c"></g>
+    <text class="cap" x="523" y="684" text-anchor="middle">512 multiply-adds</text>
+  </g>
+  <text class="size real" style="transition-delay:.2s" x="740" y="200">4,096 × 4,096</text>
+  <g class="real" style="transition-delay:1s">
+    <text class="big" x="740" y="340">68.7<tspan class="unit" dx="10">s</tspan></text>
+    <text class="cap" x="740" y="380">on one lane</text>
+  </g>
+  <g class="real" style="transition-delay:1.8s">
+    <text class="big gold-n" x="740" y="530">4.07<tspan class="unit" dx="10">ms</tspan></text>
+    <text class="cap" x="740" y="570">on 16,896 lanes</text>
+  </g>
+</svg>
+<i class="step" data-cue="cell"></i>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+function grid(id, x0, y0) {
+  const g = document.getElementById(id), cells = [];
+  for (let i = 0; i < 64; i++) {
+    const r = document.createElementNS(NS, 'rect');
+    r.setAttribute('class', 'cell');
+    r.setAttribute('x', x0 + (i % 8) * 34); r.setAttribute('y', y0 + Math.floor(i / 8) * 34);
+    r.setAttribute('width', 28); r.setAttribute('height', 28); r.setAttribute('rx', 6);
+    g.appendChild(r); cells.push(r);
+  }
+  return cells;
+}
+const A = grid('gA', 61, 371), B = grid('gB', 391, 61), C = grid('gC', 391, 371);
+const st = { row: 0, col: 0, done: 0, gold: 0, all: false };
+let timer = 0;
+render();
+function render() {
+  A.forEach((el, i) => el.classList.toggle('lit', st.all || Math.floor(i / 8) === st.row));
+  B.forEach((el, i) => el.classList.toggle('lit', st.all || i % 8 === st.col));
+  C.forEach((el, i) => {
+    el.classList.toggle('gold', i === st.gold);
+    el.classList.toggle('lit', st.all || (i < st.done && i !== st.gold));
+  });
+}
+function marker(sel, fn) {
+  const m = document.querySelector(sel);
+  new MutationObserver(() => m.classList.contains('on') && !st.all && fn()).observe(m, { attributes: true });
+}
+marker('i[data-cue="cell"]', () => {
+  if (timer || st.done > 0) return;
+  let i = 0;
+  const next = () => {
+    st.row = Math.floor(i / 8); st.col = i % 8; st.done = i; st.gold = i; render();
+    if (++i === 64) { clearInterval(timer); timer = 0; st.done = 63; }
+  };
+  next();
+  timer = setInterval(next, 70);
+});
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m !== 'all' || st.all) return;
+  clearInterval(timer); timer = 0;
+  st.all = true; st.gold = -1;
+  render();
+  document.body.classList.add('all');
+});
+</script>
