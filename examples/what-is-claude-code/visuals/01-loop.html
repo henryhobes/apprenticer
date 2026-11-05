@@ -1,0 +1,93 @@
+<!-- The model, Claude Code and the loop between them. For the opening, the turn, permissions and the close. Three boxes left to right: "You"; "Claude", with "the model" inside and "Anthropic's servers" in grey under it; and "Claude Code", with "your laptop" in grey under it. An arrow from you to Claude. You are up at once; Claude comes up as you say "model" and Claude Code as you say "laptop", so the opening line names you, then the model, then the laptop. Nothing between Claude and Claude Code until Priya has answered the opening question. "set loop": two arrows appear between them, dashes running along each: "tool call" in gold going right (the model writes a request) and "result" coming back left (Claude Code runs it on the laptop and hands back what happened). Make it in the turn after her answer and say "tool call", then "result". "set turn": the toy task "fix the failing test" plays as four rounds, about two seconds each, "fix the failing test" in grey under the arrows, the gold tool call and the result changing each round: "npm test" / "1 failed", "read cart.js" / "the code", "edit cart.js" / "saved", "npm test" / "1 failed". It ends on the failure: ask the prediction then. "set pass": two more rounds, "edit cart.js" / "saved" and "npm test" / "passed", and the gold moves to "passed". "set ask": the loop shows permissions: a round "read cart.js" goes straight through, then "npm test" stops: a dashed gold arrow runs from Claude Code under the boxes back to you, "allow?" on it, and the loop waits there. Make it in the turn after Priya answers the permissions question. The toy project (cart.js, one failing test) is a prop from the sources, not a recorded session. Any of the moves brings up the loop if it isn't up, a move made again plays again, and "set loop" puts it back to plain "tool call" and "result". In the close, make "set loop" and "set labels off" together: Claude, the model, Claude Code, tool call and result hide and come back as each is named. -->
+<style>
+  .box{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+  .lbl{fill:var(--ink);font-size:32px;transition:fill .4s var(--ease)}
+  .sub{fill:var(--ink-dim);font-size:24px}
+  .arrow{fill:none;stroke:var(--ink-dim);stroke-width:2}
+  .gold{stroke:var(--gold);stroke-width:3}
+  .hot{fill:var(--gold)}
+  #loop,#gate{opacity:0;transition:opacity .5s var(--ease)}
+  body.loop #loop,body.ask #gate{opacity:1}
+  .swap{transition:opacity .25s var(--ease)}
+  .swap.out{opacity:0}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--ink-dim)" stroke-width="1.6"/></marker>
+    <marker id="ahg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--gold)" stroke-width="1.6"/></marker>
+  </defs>
+  <g class="step">
+    <rect class="box" x="60" y="300" width="170" height="150" rx="6"/>
+    <text class="lbl" x="145" y="386" text-anchor="middle">You</text>
+  </g>
+  <g class="step" data-cue="model">
+    <path class="arrow draw" pathLength="1" d="M240 375 H320" marker-end="url(#ah)"/>
+    <rect class="box" x="330" y="300" width="250" height="150" rx="6"/>
+    <text class="lbl label" data-cue="claude" x="455" y="370" text-anchor="middle">Claude</text>
+    <text class="sub label" data-cue="model" x="455" y="408" text-anchor="middle">the model</text>
+    <text class="sub" x="455" y="500" text-anchor="middle">Anthropic's servers</text>
+  </g>
+  <g class="step" data-cue="laptop">
+    <rect class="box" x="890" y="300" width="250" height="150" rx="6"/>
+    <text class="lbl label" data-cue="claude code|harness|program" x="1015" y="386" text-anchor="middle">Claude Code</text>
+    <text class="sub" x="1015" y="500" text-anchor="middle">your laptop</text>
+  </g>
+  <g id="loop">
+    <path class="arrow flow" d="M590 340 H880" marker-end="url(#ah)"/>
+    <text class="lbl hot label swap" id="call" data-cue="tool" x="735" y="300" text-anchor="middle">tool call</text>
+    <path class="arrow flow" d="M880 410 H590" marker-end="url(#ah)"/>
+    <text class="lbl label swap" id="res" data-cue="result" x="735" y="462" text-anchor="middle">result</text>
+    <text class="sub" id="done" x="735" y="540" text-anchor="middle"></text>
+  </g>
+  <g id="gate">
+    <path class="arrow gold" stroke-dasharray="10 10" d="M1110 460 V620 H100 V460" marker-end="url(#ahg)"/>
+    <text class="lbl hot" x="580" y="672" text-anchor="middle">allow?</text>
+  </g>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+const body = document.body;
+let timer = 0, after = 0;
+function loop() {
+  if (body.classList.contains('loop')) return;
+  body.classList.add('loop');
+  document.querySelectorAll('#loop .flow').forEach(p => { p.classList.remove('flow'); void p.getBoundingClientRect(); p.classList.add('flow'); });
+}
+function round(call, res, goldRes) {
+  for (const el of [$('call'), $('res')]) el.classList.add('out');
+  setTimeout(() => {
+    $('call').textContent = call; $('res').textContent = res;
+    $('call').classList.toggle('hot', !goldRes);
+    $('res').classList.toggle('hot', !!goldRes);
+    for (const el of [$('call'), $('res')]) el.classList.remove('out');
+  }, 250);
+}
+function play(rounds, end) {
+  clearInterval(timer); clearTimeout(after);
+  let i = 0;
+  const next = () => {
+    const r = rounds[i++];
+    round(r[0], r[1], r[2]);
+    if (i === rounds.length) { clearInterval(timer); timer = 0; if (end) after = setTimeout(end, 600); }
+  };
+  next();
+  if (rounds.length > 1) timer = setInterval(next, 2000);
+}
+const TURN = [['npm test', '1 failed'], ['read cart.js', 'the code'], ['edit cart.js', 'saved'], ['npm test', '1 failed']];
+const PASS = [['edit cart.js', 'saved'], ['npm test', 'passed', true]];
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (!['loop', 'turn', 'pass', 'ask'].includes(m)) return;
+  loop();
+  if (m === 'loop') { // back to the plain loop, as in the close
+    clearInterval(timer); clearTimeout(after); timer = 0; body.classList.remove('ask');
+    $('done').textContent = '';
+    round('tool call', 'result');
+    return;
+  }
+  body.classList.remove('ask');
+  if (m === 'turn') { $('done').textContent = 'fix the failing test'; play(TURN); }
+  if (m === 'pass') { $('done').textContent = 'fix the failing test'; play(PASS); }
+  if (m === 'ask') play([['read cart.js', 'the code'], ['npm test', 'waiting']], () => { $('call').classList.remove('hot'); body.classList.add('ask'); });
+});
+</script>

@@ -1,0 +1,53 @@
+<!-- The context window filling up, then compacted. For beat 3. One long bar, left to right: everything the model sees on a request, with the limit at the right end as a gold line marked "limit". The empty bar and the limit are up at once. Then, as you say each word, it fills from the left: "instructions" (labelled under it, "CLAUDE.md, skills" in grey: what loads before Priya types), then "prompt" (a thin slice, labelled above it), then "files" (a wide block, "files read"), then "output" (another wide one, "test output"), leaving the bar nearly full. A later word brings up every part before it, so name all four in one run, in that order, before explaining any ("the instructions, your prompt, the files it read, the test output"), and say that the whole bar is sent again with every request. Then ask the prediction. "set compact": the prompt, files and output fade into one short block beside the instructions, "summary" above it, while the instructions stay; most of the bar is empty again and the limit doesn't move. Make it in the turn after her answer, and say that CLAUDE.md is read fresh from disk while the conversation becomes a summary that can lose early detail. The widths are illustrative, not measured (the sources say so); the real limit for current default models is 1 million tokens, not shown. -->
+<style>
+  .seg{stroke:var(--ink);stroke-width:2;fill:color-mix(in srgb,var(--ink) 12%,transparent)}
+  .wide{fill:color-mix(in srgb,var(--ink) 22%,transparent)}
+  .frame{fill:none;stroke:var(--ink-dim);stroke-width:2}
+  .lbl{fill:var(--ink);font-size:28px}
+  .sub{fill:var(--ink-dim);font-size:22px}
+  .hot{fill:var(--gold)}
+  .fade{transition:opacity .6s var(--ease)}
+  body.compact .fade{opacity:0}
+  #sum{opacity:0;transition:opacity .6s var(--ease) .4s}
+  body.compact #sum{opacity:1}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <rect class="frame" x="100" y="300" width="1000" height="110" rx="6"/>
+    <path d="M1100 270 V440" stroke="var(--gold)" stroke-width="3"/>
+    <text class="lbl hot label" data-cue="limit" x="1100" y="250" text-anchor="middle">limit</text>
+  </g>
+  <g class="step" data-cue="instruction">
+    <rect class="seg" x="100" y="300" width="160" height="110" rx="6"/>
+    <text class="lbl label" data-cue="instruction" x="180" y="460" text-anchor="middle">instructions</text>
+    <text class="sub" x="180" y="494" text-anchor="middle">CLAUDE.md, skills</text>
+  </g>
+  <g class="fade">
+    <g class="step" data-cue="prompt">
+      <rect class="seg" x="260" y="300" width="70" height="110" rx="6"/>
+      <text class="lbl label" data-cue="prompt" x="295" y="280" text-anchor="middle">prompt</text>
+    </g>
+  </g>
+  <g class="fade">
+    <g class="step" data-cue="file">
+      <rect class="seg wide" x="330" y="300" width="390" height="110" rx="6"/>
+      <text class="lbl label" data-cue="file" x="525" y="460" text-anchor="middle">files read</text>
+    </g>
+  </g>
+  <g class="fade">
+    <g class="step" data-cue="output">
+      <rect class="seg wide" x="720" y="300" width="330" height="110" rx="6"/>
+      <text class="lbl label" data-cue="output" x="885" y="460" text-anchor="middle">test output</text>
+    </g>
+  </g>
+  <g id="sum">
+    <rect class="seg" x="260" y="300" width="110" height="110" rx="6"/>
+    <text class="lbl" x="315" y="280" text-anchor="middle">summary</text>
+  </g>
+</svg>
+<script>
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'compact') document.body.classList.add('compact');
+});
+</script>
