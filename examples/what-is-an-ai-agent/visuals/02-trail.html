@@ -1,0 +1,66 @@
+<!-- One task as a trail of tool calls, model on the left, harness on the right. For beat 2 and the close. Up at once: the task in grey at the top, "which supplier raised prices?", and two column heads, "model" on the left and "harness" on the right. As you say "email", six rows play in from the top, one every second and a half, the newest model line in gold: "search email" → "3 invoices"; "read invoice A" → "same price"; "read invoice B" → "up 8%"; "read invoice C" → "same price"; "write sheet" → "saved"; and last "done", in the model column with nothing beside it. So in the turn that shows it, say the task, then that the model starts by searching his email, and let it play. Each left line is a tool call the model writes; each right line is what the harness ran and handed back. "set count": a small number by each model line, 1 to 6, and a big gold "6" with "calls" in grey under it, at the right: the model was called afresh for every step, six times for one message. Make it in the turn after Marcus answers whether it was called once or before every step. "set count" also puts every row up at once if they haven't all played, so it works in the close on a fresh showing. The task, the invoices and the results are a prop from the sources, not a recorded session. In the close, make "set count" and "set labels off" together: model, harness and done hide and come back as Marcus names them. -->
+<style>
+  .head{fill:var(--ink);font-size:32px}
+  .task{fill:var(--ink-dim);font-size:26px}
+  .call{fill:var(--ink);font-size:28px;transition:fill .4s var(--ease)}
+  .res{fill:var(--ink-dim);font-size:28px}
+  .num{fill:var(--ink-dim);font-size:24px;opacity:0;transition:opacity .4s var(--ease)}
+  .arrow{fill:none;stroke:var(--ink-dim);stroke-width:2}
+  .row{opacity:0;transform:translateY(8px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+  .row.in{opacity:1;transform:none}
+  .row.now .call{fill:var(--gold)}
+  #count{opacity:0;transition:opacity .6s var(--ease)}
+  body.count #count,body.count .num{opacity:1}
+  body.count .row .call{fill:var(--ink)}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--ink-dim)" stroke-width="1.6"/></marker>
+  </defs>
+  <g class="step">
+    <text class="task" x="160" y="90">which supplier raised prices?</text>
+    <text class="head label" data-cue="model" x="160" y="160">model</text>
+    <text class="head label" data-cue="harness|program" x="680" y="160">harness</text>
+    <path d="M110 185 H960" stroke="var(--faint)" stroke-width="2"/>
+  </g>
+  <g id="rows"></g>
+  <g id="count">
+    <text x="1120" y="420" text-anchor="end" font-size="72" fill="var(--gold)">6</text>
+    <text x="1120" y="462" text-anchor="end" font-size="24" fill="var(--ink-dim)">calls</text>
+  </g>
+</svg>
+<i class="step" data-cue="email"></i><!-- hidden marker: the rows play on "email" -->
+<script>
+const ROWS = [['search email', '3 invoices'], ['read invoice A', 'same price'], ['read invoice B', 'up 8%'], ['read invoice C', 'same price'], ['write sheet', 'saved'], ['done', '']];
+const NS = 'http://www.w3.org/2000/svg';
+const g = document.getElementById('rows');
+const make = (tag, attrs, text) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); if (text) el.textContent = text; return el; };
+const rows = ROWS.map(([call, res], i) => {
+  const y = 245 + i * 80;
+  const row = make('g', { class: 'row' });
+  row.append(make('text', { class: 'num', x: 120, y, 'text-anchor': 'end' }, String(i + 1)));
+  const c = make('text', { class: 'call', x: 160, y }, call);
+  if (call === 'done') c.classList.add('label'), c.dataset.cue = 'done|finish';
+  row.append(c);
+  if (res) {
+    row.append(make('path', { class: 'arrow', d: `M520 ${y - 9} H650`, 'marker-end': 'url(#ah)' }));
+    row.append(make('text', { class: 'res', x: 680, y }, res));
+  }
+  g.append(row);
+  return row;
+});
+let timer = 0, i = 0;
+function show(n) { rows.forEach((r, k) => { r.classList.toggle('in', k < n); r.classList.toggle('now', k === n - 1); }); }
+function play() {
+  if (timer || i) return;
+  const next = () => { show(++i); if (i === rows.length) { clearInterval(timer); timer = 0; } };
+  next();
+  timer = setInterval(next, 1500);
+}
+const marker = document.querySelector('i.step');
+new MutationObserver(() => marker.classList.contains('on') && play()).observe(marker, { attributes: true });
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'count') { clearInterval(timer); timer = 0; i = rows.length; show(i); document.body.classList.add('count'); }
+});
+</script>
