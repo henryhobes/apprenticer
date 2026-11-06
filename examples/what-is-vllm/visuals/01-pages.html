@@ -1,0 +1,83 @@
+<!-- The GPU's KV cache memory, reserved per chat and then paged. For beats 2 and 3, and the close. A grid of 48 blocks, 3 rows of 16, all up at once: one row per chat, "chat 1", "chat 2", "chat 3" in grey at the left, each row the reservation for that chat's longest possible reply. Filled blocks hold tokens (8 in chat 1's row, 5 in chat 2's, 3 in chat 3's), labelled "used"; the rest of each row is dashed, labelled "reserved". "set used": "16 of 48 blocks used" appears under the grid, the 16 in gold, and below it "chat 4" with "no room" in grey: make it in the same turn that shows the grid, the turn after Sam guesses how much reserved memory holds tokens, saying a third, and that chat four can't start. "set paged": the dashed reservations become plain free blocks, labelled "free", the row names fade, chat 4's line goes, each used block shows its chat's number (they don't move), and the gold moves to "3 chats": make it after Sam says how they'd fit chat four, and say a chat now takes a block of 16 tokens only when its last one fills, anywhere in memory, with a table keeping its order, like pages in an operating system. "set more": new chats 4 to 8 take free blocks, scattered and interleaved, the "used" and "free" labels go, and the count goes to 8 chats, "4 blocks free" under it: make it straight after "set paged", in the same turn or the next. For the close: show it with "set paged", "set more" and "set labels off"; "chats" and "blocks" come back as Sam says them. The grid is a toy (sources say so); never present 3 to 8 as a measured gain. Not on the board, from the sources: 800 KB per token for a 13B model, 20.4% to 38.2% of KV memory holding tokens in older systems, 2.2 times as many requests at once, 2 to 4 times the throughput. -->
+<style>
+  .cell{fill:none;stroke:var(--ink-dim);stroke-width:2;stroke-dasharray:6 6;transition:stroke .6s var(--ease),stroke-dasharray .6s var(--ease)}
+  .cell.used,.cell.new{fill:color-mix(in srgb,var(--ink) 22%,transparent);stroke:var(--ink);stroke-dasharray:none}
+  body.paged .cell:not(.used):not(.new){stroke:var(--ink-dim);stroke-dasharray:none}
+  .lbl{fill:var(--ink);font-size:28px}
+  .dim{fill:var(--ink-dim);font-size:24px}
+  .num{fill:var(--ink);font-size:22px;opacity:0;transition:opacity .6s var(--ease)}
+  .big{fill:var(--gold);font-size:64px}
+  .unit{fill:var(--ink-dim);font-size:26px}
+  .fade{transition:opacity .6s var(--ease)}
+  .later{opacity:0;transition:opacity .6s var(--ease)}
+  body.used .ifused{opacity:1}
+  body.paged .ifused, body.paged .ifcontig{opacity:0}
+  body.paged .ifpaged{opacity:1}
+  body.paged .num.on{opacity:1}
+  body.more .notmore{opacity:0}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <g id="grid"></g>
+    <g class="fade ifcontig">
+      <text class="dim" x="160" y="232" text-anchor="end">chat 1</text>
+      <text class="dim" x="160" y="328" text-anchor="end">chat 2</text>
+      <text class="dim" x="160" y="424" text-anchor="end">chat 3</text>
+      <text class="lbl label" data-cue="reserv" x="900" y="175" text-anchor="middle">reserved</text>
+    </g>
+    <text class="lbl fade notmore" x="417" y="175" text-anchor="middle">used</text>
+    <text class="lbl later ifpaged notmore" x="900" y="520" text-anchor="middle">free</text>
+  </g>
+  <g class="later ifused">
+    <text class="big" x="180" y="560">16<tspan class="unit" dx="14">of 48 blocks used</tspan></text>
+    <text class="lbl" x="180" y="650">chat 4<tspan class="unit" dx="14">no room</tspan></text>
+  </g>
+  <g class="later ifpaged">
+    <text class="big" x="180" y="600"><tspan id="chats">3</tspan><tspan class="unit label" data-cue="chat" dx="14">chats</tspan></text>
+    <text class="unit" x="180" y="650"><tspan id="left">32</tspan> <tspan class="label" data-cue="block">blocks free</tspan></text>
+  </g>
+</svg>
+<script>
+const NS = 'http://www.w3.org/2000/svg', grid = document.getElementById('grid');
+const X0 = 180, Y0 = 200, W = 54, H = 80, GAP = 6, ROWGAP = 16;
+const used = [8, 5, 3]; // blocks holding tokens in each chat's row
+const order = '45647856468754680675846085764080'; // which new chat takes each free block, in order; 0 stays free
+const cells = [], free = [];
+for (let r = 0; r < 3; r++) for (let c = 0; c < 16; c++) {
+  const x = X0 + c * (W + GAP), y = Y0 + r * (H + ROWGAP);
+  const rect = document.createElementNS(NS, 'rect');
+  Object.entries({ x, y, width: W, height: H, rx: 6 }).forEach(([k, v]) => rect.setAttribute(k, v));
+  rect.setAttribute('class', c < used[r] ? 'cell used' : 'cell');
+  const num = document.createElementNS(NS, 'text');
+  Object.entries({ x: x + W / 2, y: y + H / 2 + 8, 'text-anchor': 'middle', class: 'num' }).forEach(([k, v]) => num.setAttribute(k, v));
+  num.textContent = c < used[r] ? r + 1 : '';
+  if (c < used[r]) num.classList.add('on');
+  grid.append(rect, num);
+  cells.push({ rect, num });
+  if (c >= used[r]) free.push({ rect, num });
+}
+let state = '';
+function more() {
+  let n = 3, left = 32;
+  [...order].forEach((who, i) => {
+    if (who === '0') return;
+    setTimeout(() => {
+      const { rect, num } = free[i];
+      rect.classList.add('new');
+      num.textContent = who; num.classList.add('on');
+      n = Math.max(n, +who); left--;
+      document.getElementById('chats').textContent = n;
+      document.getElementById('left').textContent = left;
+    }, 200 + i * 60);
+  });
+}
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'used' && !state) { state = 'used'; document.body.classList.add('used'); }
+  if (m === 'paged' && state !== 'paged' && state !== 'more') { state = 'paged'; document.body.classList.add('paged'); }
+  if (m === 'more' && state !== 'more') {
+    if (state !== 'paged') document.body.classList.add('paged');
+    state = 'more'; document.body.classList.add('more'); more();
+  }
+});
+</script>

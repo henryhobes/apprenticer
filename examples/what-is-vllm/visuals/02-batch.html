@@ -1,0 +1,74 @@
+<!-- Four batch slots over ten steps, the old way and then continuous batching. For beat 4. Time runs left to right, one step being one new token for every chat in the batch; four rows, one per slot. Up at once: chat A's bar runs all ten steps, B's stops after 4, C's after 6, D's after 3, and under them "4 finished" with the 4 in gold. Then, as you say "idle", the rest of B's, C's and D's rows come up dashed, labelled "idle": the batch runs until its longest chat is done. Then, as you say "waiting", chats E, F and G come up at the right, labelled "waiting". Say "idle" then "waiting" in the turn that shows it, then ask what should happen to B's slot. "set continuous": F appears in D's slot from step 4, E in B's from step 5, G in C's from step 7, the waiting column empties, and the count goes from 4 to 7 finished in the same ten steps, while A's bar stays exactly as long: make it in the turn after Sam answers, and say the server picks who's in the batch at every step. Then ask about chat A's row. The toy counts every step as the same length (sources say so; real steps with more chats take somewhat longer). -->
+<style>
+  .run{fill:color-mix(in srgb,var(--ink) 12%,transparent);stroke:var(--ink);stroke-width:2}
+  .idle{fill:none;stroke:var(--ink-dim);stroke-width:2;stroke-dasharray:6 6;transition:opacity .6s var(--ease)}
+  .lbl{fill:var(--ink);font-size:28px}
+  .dim{fill:var(--ink-dim);font-size:24px}
+  .big{fill:var(--gold);font-size:64px}
+  .unit{fill:var(--ink-dim);font-size:26px}
+  .new{opacity:0;transition:opacity .6s var(--ease)}
+  body.cont .new{opacity:1}
+  body.cont .gone{opacity:0}
+  #queue{transition:opacity .6s var(--ease)}
+  body.cont #queue{opacity:0}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <g id="runs"></g>
+    <path d="M140 545 H940" stroke="var(--faint)" stroke-width="2"/>
+    <text class="dim" x="940" y="580" text-anchor="end">time →</text>
+    <text class="big" x="140" y="660"><tspan id="done">4</tspan><tspan class="unit label" data-cue="finish" dx="14">finished</tspan></text>
+  </g>
+  <g class="step" data-cue="idle">
+    <g id="idles"></g>
+    <text class="dim label gone" data-cue="idle" x="660" y="482" text-anchor="middle">idle</text>
+  </g>
+  <g class="step" data-cue="wait">
+    <g id="queue">
+      <text class="lbl label" data-cue="wait" x="1075" y="150" text-anchor="middle">waiting</text>
+    </g>
+  </g>
+  <g id="joins"></g>
+</svg>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const X0 = 140, STEP = 80, Y0 = 170, H = 70, ROW = 90;
+function box(parent, cls, row, from, len, letter, delay) {
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('class', cls);
+  if (delay) g.style.transitionDelay = `${delay}ms`;
+  const r = document.createElementNS(NS, 'rect');
+  Object.entries({ x: X0 + from * STEP + 4, y: Y0 + row * ROW, width: len * STEP - 8, height: H, rx: 6, class: cls.includes('idle') ? 'idle' : 'run' })
+    .forEach(([k, v]) => r.setAttribute(k, v));
+  g.append(r);
+  if (letter) {
+    const t = document.createElementNS(NS, 'text');
+    Object.entries({ x: X0 + from * STEP + 30, y: Y0 + row * ROW + 45, class: 'lbl' }).forEach(([k, v]) => t.setAttribute(k, v));
+    t.textContent = letter;
+    g.append(t);
+  }
+  parent.append(g);
+}
+const $ = id => document.getElementById(id);
+// The old way: slot, first step, length, chat.
+[[0, 0, 10, 'A'], [1, 0, 4, 'B'], [2, 0, 6, 'C'], [3, 0, 3, 'D']].forEach(([r, f, l, c]) => box($('runs'), '', r, f, l, c));
+// Idle stretches the old way; with continuous batching they go, and only the ends nobody is waiting for stay idle.
+[[1, 4, 6], [2, 6, 4], [3, 3, 7]].forEach(([r, f, l]) => box($('idles'), 'idle gone', r, f, l));
+[[1, 9, 1], [3, 8, 2]].forEach(([r, f, l]) => box($('joins'), 'idle new', r, f, l, '', 1500));
+// Waiting at the right.
+['E', 'F', 'G'].forEach((c, i) => {
+  const g = document.createElementNS(NS, 'g');
+  g.innerHTML = `<rect class="run" x="1040" y="${Y0 + i * ROW}" width="70" height="${H}" rx="6"/><text class="lbl" x="1075" y="${Y0 + i * ROW + 45}" text-anchor="middle">${c}</text>`;
+  $('queue').append(g);
+});
+// Continuous batching: who joins which slot, at which step, for how long.
+[[3, 3, 5, 'F'], [1, 4, 5, 'E'], [2, 6, 4, 'G']].forEach(([r, f, l, c], i) => box($('joins'), 'new', r, f, l, c, 300 + i * 400));
+let moved = false;
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m !== 'continuous' || moved) return;
+  moved = true;
+  document.body.classList.add('cont');
+  [5, 6, 7].forEach((n, i) => setTimeout(() => { $('done').textContent = n; }, 700 + i * 400));
+});
+</script>

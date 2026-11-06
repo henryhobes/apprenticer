@@ -1,0 +1,3 @@
+<!-- What Sam understands and how the sessions have gone: for each of the four ideas in the brief (the server, the KV cache, pages, batching and throughput against latency), whether Sam has explained it back, with their own words and the date as evidence, marked solid, half or open; where the last session stopped; the questions they asked that weren't answered in full; how they like to be taught and anything they said annoyed them. Under 250 words. Never drop an idea's line. -->
+
+No sessions yet. From the brief: Sam is a backend engineer who ships features on OpenAI's API and keeps seeing vLLM next to Llama; knows APIs and tokens, not attention or the KV cache.
