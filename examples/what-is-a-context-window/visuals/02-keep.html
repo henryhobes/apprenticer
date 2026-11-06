@@ -1,0 +1,115 @@
+<!-- The full chat squeezed into a summary, and the rule kept apart. For beats 4 and 5. All up at once: the frame from 01-transcript, "window" above it, full from edge to edge: the gold "brief" block at the left, then fourteen narrow message blocks; on the right the "model" box, an arrow from the frame to it. In the turn that shows it, say "window", "brief" and "model", then ask who decides what goes into the summary. "set compact": the brief and the first nine messages fade and fold into one short dashed grey block, "summary" above it, at the left of the frame; the last five messages slide up behind it, and most of the frame is empty again. The gold is gone: the rule was in the brief. Make it in the turn after her answer. "set slot": a block appears at the very front of the frame, "instructions" under it, a faint line between it and the chat, and the summary and messages move right to make room; make it as you say "instructions", the part the app sends fresh, first, with every message. "set pin": the instructions block turns gold, "spelling rule" under it in grey, then three new messages arrive and, in a second compaction, the older messages fold into the summary while the three newest stay and the gold block stays exactly where it is. Make it in the turn after she answers what happens to a rule in that slot. Any move brings up the moves before it. The blocks and their counts are a prop (the sources say so), not measured. -->
+<style>
+  .blk{transition:transform .6s var(--ease),opacity .6s var(--ease)}
+  .still .blk{transition:none}
+  .blk rect{fill:color-mix(in srgb,var(--ink) 12%,transparent);stroke:var(--ink);stroke-width:2;transition:fill .5s var(--ease),stroke .5s var(--ease)}
+  .blk.brief rect{stroke:var(--gold);fill:color-mix(in srgb,var(--gold) 12%,transparent)}
+  .blk.summary rect{stroke-dasharray:6 6;stroke:var(--ink-dim);fill:color-mix(in srgb,var(--ink) 6%,transparent);transform-box:fill-box;transform-origin:center}
+  body.pinned .blk.instructions rect{stroke:var(--gold);fill:color-mix(in srgb,var(--gold) 12%,transparent)}
+  .lbl{fill:var(--ink);font-size:28px}
+  .gold{fill:var(--gold)}
+  .grey{fill:var(--ink-dim);font-size:24px}
+  .box{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+  .arrow{fill:none;stroke:var(--ink-dim);stroke-width:2}
+  #rule,#spell{opacity:0;transition:opacity .6s var(--ease)}
+  body.slot #rule,body.pinned #spell{opacity:1}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--ink-dim)" stroke-width="1.6"/></marker>
+  </defs>
+  <g class="step">
+    <rect x="290" y="290" width="600" height="150" rx="6" fill="none" stroke="var(--ink)" stroke-width="3"/>
+    <text class="lbl label" data-cue="window" x="890" y="268" text-anchor="end">window</text>
+    <path id="rule" d="M407 300 V430" stroke="var(--faint)" stroke-width="2"/>
+    <g id="row">
+      <g class="blk brief" id="brief">
+        <rect x="0" y="310" width="90" height="110" rx="6"/>
+        <text class="lbl gold label" data-cue="brief" x="45" y="470" text-anchor="middle">brief</text>
+      </g>
+      <g class="blk summary" id="summary">
+        <rect x="0" y="310" width="120" height="110" rx="6"/>
+        <text class="lbl label" data-cue="summary" x="-4" y="280" text-anchor="start">summary</text>
+      </g>
+      <g class="blk instructions" id="instructions">
+        <rect x="0" y="310" width="90" height="110" rx="6"/>
+        <text class="lbl label" data-cue="instruction" x="45" y="470" text-anchor="middle">instructions</text>
+        <text class="grey" id="spell" x="45" y="502" text-anchor="middle">spelling rule</text>
+      </g>
+    </g>
+    <path class="arrow" d="M900 365 H950" marker-end="url(#ah)"/>
+    <rect class="box" x="960" y="300" width="180" height="130" rx="6"/>
+    <text class="lbl label" data-cue="model" x="1050" y="376" text-anchor="middle" font-size="32">model</text>
+  </g>
+</svg>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const row = document.getElementById('row');
+const brief = { w: 90, el: document.getElementById('brief') };
+const summary = { w: 120, el: document.getElementById('summary') };
+const instructions = { w: 90, el: document.getElementById('instructions') };
+const msgs = [];
+for (let i = 0; i < 17; i++) {
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('class', 'blk');
+  const r = document.createElementNS(NS, 'rect');
+  for (const [k, v] of Object.entries({ x: 0, y: 310, width: 26, height: 110, rx: 6 })) r.setAttribute(k, v);
+  g.append(r);
+  row.append(g);
+  msgs.push({ w: 26, el: g });
+}
+const blocks = [instructions, summary, brief, ...msgs];
+let level = 0;
+
+function layout() {
+  const sx = level >= 2 ? 415 : 305;
+  const set = (b, x, on) => { b.x = x; b.state = on ? 'in' : 'gone'; };
+  set(brief, 305, level < 1);
+  set(summary, sx, level >= 1);
+  set(instructions, 305, level >= 2);
+  msgs.forEach((b, k) => {
+    if (level === 0) set(b, 403 + 34 * k + (k < 14 ? 0 : 40), k < 14);
+    else if (k < 9) set(b, 305, false);
+    else if (level >= 5) set(b, k < 14 ? sx + 47 : sx + 128 + 34 * (k - 14), k >= 14);
+    else set(b, sx + 128 + 34 * (k - 9) + (k < 14 || level >= 4 ? 0 : 40), k < 14 || level >= 4);
+  });
+}
+
+function apply() {
+  for (const b of blocks) {
+    b.el.style.transform = 'translateX(' + b.x + 'px)';
+    b.el.style.opacity = b.state === 'gone' ? 0 : b.state === 'dim' ? 0.3 : 1;
+  }
+  document.body.classList.toggle('slot', level >= 2);
+  document.body.classList.toggle('pinned', level >= 3);
+}
+
+function go(to) {
+  level = to;
+  layout();
+  apply();
+  if (level === 5) {
+    summary.el.querySelector('rect').animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }],
+      { duration: 700, easing: 'cubic-bezier(.2,.7,.2,1)', delay: 300 });
+  }
+}
+
+row.classList.add('still');
+layout();
+apply();
+void row.getBoundingClientRect();
+row.classList.remove('still');
+
+const moves = { compact: 1, slot: 2, pin: 3 };
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  const to = moves[m];
+  if (!to || to <= level) return;
+  go(to);
+  if (to === 3) {
+    setTimeout(() => go(4), 900);
+    setTimeout(() => go(5), 1800);
+  }
+});
+</script>

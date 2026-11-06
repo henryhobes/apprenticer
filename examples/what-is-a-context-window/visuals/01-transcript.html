@@ -1,0 +1,112 @@
+<!-- Rosa's chat as a row, shown to the model again every message. For the opening, beats 1 to 3, and the close. A row of blocks left to right across the middle: first a wide block in gold, "brief" under it (her pasted brand brief, which holds her spelling rule), then six narrow blocks, one per message, no text on them. On the right a box, "model". The row is up at once; the model comes up as you say "model", so the opening line names the brief, then the model. An arrow runs from the row to the model, plain, and nothing moves until Rosa has answered the opening question. "set resend": dashes run along the arrow (it plays again each time it is made), the whole row brightens as it is sent, and one more message block joins the end: make it in the turn after her answer and say the whole chat is sent again. "set long": the row grows to fourteen messages and a frame appears around it, "window" above it, the row now filling it to the right edge: make it as you say "window". "set slide": seven more messages arrive on the right, the row shifts left so the newest fill the frame to its right edge, and the brief and the first four messages slide out past the frame's left edge, turning dashed and grey, the brief still gold but dashed: make it in the turn after she answers which end goes. "set middle": inside the frame, the blocks in the middle third dim: make it for beat 3, as you say models miss most in the middle. Any move brings up the moves before it (so "set slide" alone also does "set long"). For the close, show it with "set long", "set slide" and "set labels off": "brief", "window" and "model" hide and come back as each is said. The chat and every count of blocks are a prop (the sources say so); none of it is measured. -->
+<style>
+  .blk{transition:transform .6s var(--ease),opacity .6s var(--ease)}
+  .still .blk{transition:none}
+  .blk rect{fill:color-mix(in srgb,var(--ink) 12%,transparent);stroke:var(--ink);stroke-width:2;transition:fill .5s var(--ease),stroke .5s var(--ease)}
+  .blk.brief rect{stroke:var(--gold);fill:color-mix(in srgb,var(--gold) 12%,transparent)}
+  .blk.out rect{stroke-dasharray:6 6;stroke:var(--ink-dim);fill:none}
+  .blk.brief.out rect{stroke:var(--gold)}
+  .bright .blk:not(.out) rect{fill:color-mix(in srgb,var(--ink) 30%,transparent)}
+  .bright .blk.brief:not(.out) rect{fill:color-mix(in srgb,var(--gold) 30%,transparent)}
+  .lbl{fill:var(--ink);font-size:28px}
+  .gold{fill:var(--gold)}
+  .box{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+  .arrow{fill:none;stroke:var(--ink-dim);stroke-width:2}
+  #frame{opacity:0;transition:opacity .6s var(--ease)}
+  body.long #frame{opacity:1}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--ink-dim)" stroke-width="1.6"/></marker>
+  </defs>
+  <g class="step">
+    <g id="frame">
+      <rect x="290" y="290" width="600" height="150" rx="6" fill="none" stroke="var(--ink)" stroke-width="3"/>
+      <text class="lbl label" data-cue="window" x="890" y="268" text-anchor="end">window</text>
+    </g>
+    <g id="row">
+      <g class="blk brief" id="brief">
+        <rect x="0" y="310" width="90" height="110" rx="6"/>
+        <text class="lbl gold label" data-cue="brief" x="45" y="470" text-anchor="middle">brief</text>
+      </g>
+    </g>
+    <path id="arrow" class="arrow" d="M900 365 H950" marker-end="url(#ah)"/>
+  </g>
+  <g class="step" data-cue="model">
+    <rect class="box" x="960" y="300" width="180" height="130" rx="6"/>
+    <text class="lbl label" data-cue="model" x="1050" y="376" text-anchor="middle" font-size="32">model</text>
+  </g>
+</svg>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const row = document.getElementById('row');
+const arrow = document.getElementById('arrow');
+const blocks = [{ w: 90, el: document.getElementById('brief') }];
+for (let i = 0; i < 21; i++) {
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('class', 'blk');
+  const r = document.createElementNS(NS, 'rect');
+  for (const [k, v] of Object.entries({ x: 0, y: 310, width: 26, height: 110, rx: 6 })) r.setAttribute(k, v);
+  g.append(r);
+  row.append(g);
+  blocks.push({ w: 26, el: g });
+}
+const counts = [6, 7, 14, 21, 21];
+let level = 0;
+
+function layout() {
+  const n = counts[level], shift = level >= 3 ? 244 : 0;
+  blocks.forEach((b, i) => {
+    const k = i - 1;
+    b.x = (i ? 403 + 34 * k : 305) - shift;
+    b.state = i === 0 || k < n ? 'in' : 'gone';
+    if (b.state === 'gone') b.x += 40;
+    else if (b.x + b.w <= 290) b.state = 'out';
+    else if (level >= 4 && b.x + b.w / 2 >= 490 && b.x + b.w / 2 <= 690) b.state = 'dim';
+  });
+}
+
+function apply() {
+  let c = 0;
+  for (const b of blocks) {
+    const wasGone = b.shown === false;
+    b.shown = b.state !== 'gone';
+    b.el.style.transitionDelay = wasGone && b.shown ? c++ * 30 + 'ms' : '0ms';
+    b.el.style.transform = 'translateX(' + b.x + 'px)';
+    b.el.style.opacity = b.state === 'gone' ? 0 : b.state === 'dim' ? 0.3 : 1;
+    b.el.classList.toggle('out', b.state === 'out');
+  }
+  document.body.classList.toggle('long', level >= 2);
+  const end = blocks[counts[level]].x + 26 + 20;
+  arrow.setAttribute('d', 'M' + (level >= 2 ? 900 : end) + ' 365 H950');
+}
+
+function go(to) {
+  level = to;
+  layout();
+  apply();
+}
+
+function resend() {
+  arrow.classList.remove('flow');
+  void arrow.getBoundingClientRect();
+  arrow.classList.add('flow');
+  document.querySelector('svg').classList.add('bright');
+  setTimeout(() => document.querySelector('svg').classList.remove('bright'), 800);
+}
+
+row.classList.add('still');
+layout();
+apply();
+void row.getBoundingClientRect();
+row.classList.remove('still');
+
+const moves = { resend: 1, long: 2, slide: 3, middle: 4 };
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  const to = moves[m];
+  if (m === 'resend') resend();
+  if (!to || to <= level) return;
+  go(to);
+});
+</script>

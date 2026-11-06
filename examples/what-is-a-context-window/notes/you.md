@@ -1,0 +1,3 @@
+<!-- What Rosa understands and how the sessions have gone: for each of the five ideas in the brief (shown again, the limit, inside the window, the summary, sticky instructions), whether Rosa has explained it back, with her own words and the date as evidence, marked solid, half or open; where the last session stopped; the questions she asked that weren't answered in full; how she likes to be taught and anything she said annoyed her. Under 250 words. Never drop an idea's line. -->
+
+No sessions yet. From the brief: Rosa is a marketing lead who runs long ChatGPT and Claude chats for campaign copy, often opening with a pasted brand brief, and her complaint is "it forgot what I told it at the start." She doesn't write code.
