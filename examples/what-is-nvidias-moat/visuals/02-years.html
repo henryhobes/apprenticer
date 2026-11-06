@@ -1,0 +1,45 @@
+<!-- Twenty years of CUDA on a timeline, from 2006 to today, then Nvidia's developer count. For beat 3. A line across the board, to scale: "CUDA" with "2006" under it at the left end, up at once; "AlexNet" with "2012" under it comes up as you say "AlexNet"; at the right end a gold "today" marker with "2026" under it comes up as you say "today", and "20 years" appears above the line. So the turn that shows it says "CUDA came out in 2006", then that AlexNet, the 2012 image-recognition winner that kicked off modern AI, was trained on Nvidia GPUs, then "today", and asks the developer question. "set count": under the today marker, "7.5" in gold with "million developers" in grey beside it and "Nvidia's count" in grey under it; the gold leaves the today marker. It's the number Nvidia gives in its fiscal 2026 annual report for developers using CUDA and its other tools: say "Nvidia says". Make it in the turn after Priya answers. Not on the board, also from the sources: more than half of Nvidia's engineers work on software. -->
+<style>
+  .lbl{fill:var(--ink);font-size:30px}
+  .sub{fill:var(--ink-dim);font-size:24px}
+  .axis{stroke:var(--faint);stroke-width:2;fill:none}
+  .tick{stroke:var(--ink);stroke-width:3}
+  .now{stroke:var(--gold);stroke-width:3;transition:stroke .4s var(--ease)}
+  .nowl{fill:var(--gold);font-size:30px;transition:fill .4s var(--ease)}
+  body.count .now{stroke:var(--ink)}
+  body.count .nowl{fill:var(--ink)}
+  .span{fill:var(--ink);font-size:56px}
+  .big{fill:var(--gold);font-size:72px}
+  #count{opacity:0;transition:opacity .5s var(--ease)}
+  body.count #count{opacity:1}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <path class="axis" d="M120 330 H1080"/>
+    <path class="tick" d="M120 305 V355"/>
+    <text class="lbl" x="120" y="400" text-anchor="middle">CUDA</text>
+    <text class="sub" x="120" y="435" text-anchor="middle">2006</text>
+  </g>
+  <g class="step" data-cue="alexnet">
+    <path class="tick" d="M408 305 V355"/>
+    <text class="lbl" x="408" y="400" text-anchor="middle">AlexNet</text>
+    <text class="sub" x="408" y="435" text-anchor="middle">2012</text>
+  </g>
+  <g class="step" data-cue="today">
+    <path class="now" d="M1080 290 V370"/>
+    <text class="nowl" x="1080" y="400" text-anchor="middle">today</text>
+    <text class="sub" x="1080" y="435" text-anchor="middle">2026</text>
+    <text class="span" x="600" y="260" text-anchor="middle">20<tspan class="sub" dx="12">years</tspan></text>
+  </g>
+  <g id="count">
+    <text class="big" x="880" y="580" text-anchor="end">7.5</text>
+    <text class="sub" x="900" y="570">million developers</text>
+    <text class="sub" x="880" y="625" text-anchor="end">Nvidia's count</text>
+  </g>
+</svg>
+<script>
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'count') document.body.classList.add('count');
+});
+</script>

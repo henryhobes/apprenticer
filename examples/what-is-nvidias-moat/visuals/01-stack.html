@@ -1,0 +1,45 @@
+<!-- The stack an AI team builds on, from the Nvidia GPU up to their model. For the opening, beats 1 and 2, and the close. Four boxes stacked bottom to top in the middle of the board: "Nvidia GPU" at the bottom, then "CUDA + libraries", then "PyTorch", then "your model" at the top. The GPU box has its outline in gold: the thing being swapped. The GPU is up at once; the others come up as you say "CUDA", "PyTorch", then "model", so the opening line names them bottom to top in that order. Nothing changes until Priya has answered which box stops working. "set swap": the bottom box turns into a dashed grey "rival chip", the CUDA box's outline goes dashed and grey, and "Nvidia only" comes up in gold beside it: the gold moves onto that tag. PyTorch and your model stay solid. Make it in the turn after her answer. In beat 2 it stays up with no move. In the close, make "set swap" and "set labels off" together: rival chip, CUDA + libraries, PyTorch, your model and Nvidia only hide and come back as each is named (rival chip also on "chip" or "faster", CUDA also on "librar", PyTorch also on "framework", your model also on "code"). No numbers on this board. -->
+<style>
+  .box{fill:var(--panel);stroke:var(--ink);stroke-width:2;transition:stroke .5s var(--ease)}
+  .lbl{fill:var(--ink);font-size:32px}
+  .tag{fill:var(--gold);font-size:28px}
+  #gpubox{stroke:var(--gold);stroke-width:3}
+  body.swap #cuda{stroke:var(--ink-dim);stroke-width:2;stroke-dasharray:10 10}
+  #rival,#only{opacity:0;transition:opacity .5s var(--ease)}
+  body.swap #rival,body.swap #only{opacity:1}
+  #gpu{transition:opacity .5s var(--ease)}
+  body.swap #gpu{opacity:0}
+  .dashed{fill:none;stroke:var(--ink-dim);stroke-width:2;stroke-dasharray:10 10}
+  .dim{fill:var(--ink-dim);font-size:32px}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <g id="gpu">
+      <rect class="box" id="gpubox" x="340" y="560" width="520" height="110" rx="6"/>
+      <text class="lbl label" data-cue="gpu|nvidia" x="600" y="626" text-anchor="middle">Nvidia GPU</text>
+    </g>
+    <g id="rival">
+      <rect class="dashed" x="340" y="560" width="520" height="110" rx="6"/>
+      <text class="dim label" data-cue="rival|chip|faster" x="600" y="626" text-anchor="middle">rival chip</text>
+    </g>
+  </g>
+  <g class="step" data-cue="cuda">
+    <rect class="box" id="cuda" x="340" y="420" width="520" height="110" rx="6"/>
+    <text class="lbl label" data-cue="cuda|librar" x="600" y="486" text-anchor="middle">CUDA + libraries</text>
+    <text class="tag label" id="only" data-cue="nvidia|only" x="890" y="485">Nvidia only</text>
+  </g>
+  <g class="step" data-cue="pytorch">
+    <rect class="box" x="340" y="280" width="520" height="110" rx="6"/>
+    <text class="lbl label" data-cue="pytorch|framework" x="600" y="346" text-anchor="middle">PyTorch</text>
+  </g>
+  <g class="step" data-cue="model">
+    <rect class="box" x="340" y="140" width="520" height="110" rx="6"/>
+    <text class="lbl label" data-cue="model|code" x="600" y="206" text-anchor="middle">your model</text>
+  </g>
+</svg>
+<script>
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'swap') document.body.classList.add('swap');
+});
+</script>
