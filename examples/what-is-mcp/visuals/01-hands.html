@@ -1,0 +1,99 @@
+<!-- You, the app, the model and a calendar server. For the opening, beats 1, 2 and 4, and the close. Top row, three boxes left to right: "You"; "Claude", with "the app" inside and "your laptop" in grey under it; and "the model", with "Anthropic's servers" in grey under it. An arrow from you to the app, a plain line between the app and the model, which gives way to two arrows once any move is made. Below the app, a dashed grey box "Calendar", connected to nothing. You are up at once; the app comes up as you say "app", the model as you say "model", the calendar as you say "calendar", so the opening line names you, the app, the model, then the calendar. Nothing reaches the calendar until Leila has answered the opening question. "set plug": the calendar turns solid and becomes "calendar server", a link draws in between it and the app with "MCP" beside it, and one exchange plays: a gold "tool call" from the model to the app and on down to the server, then "result" back to the model. Make it in the turn after her answer and say "tool call", then "result". "set list": the app asks the server first, before any tool call: a gold "list" arrow runs down to the server, and three tool names come back beside it, "list events", "create event", "send invite". Make it in the turn after she answers beat 2, and say that these names, each with a line describing it, go to the model with her message. "set ask": the model asks for "send invite", and the call stops at the app: a dashed gold arrow runs from the app back to you with "allow?" on it, and nothing goes down to the server. Make it in the turn after she answers beat 4. The three tool names are a prop from the sources, not a real server's list. Any move brings up the plug if it isn't up, and a move made again plays again. In the close, make "set plug" and "set labels off" together: Claude, the app, the model, calendar, MCP, tool call and result hide and come back as each is named. -->
+<style>
+  .box{fill:var(--panel);stroke:var(--ink);stroke-width:2;transition:stroke .5s var(--ease)}
+  .lbl{fill:var(--ink);font-size:32px}
+  .sub{fill:var(--ink-dim);font-size:24px}
+  .tool{fill:var(--ink);font-size:26px}
+  .arrow{fill:none;stroke:var(--ink-dim);stroke-width:2}
+  .hot{fill:var(--gold)}
+  .goldline{stroke:var(--gold);stroke-width:3}
+  #cal .box{stroke:var(--ink-dim);stroke-dasharray:10 10}
+  body.plug #cal .box{stroke:var(--ink);stroke-dasharray:none}
+  #plain{transition:opacity .4s var(--ease)}
+  body.plug #plain{opacity:0}
+  .ex,#link{opacity:0;transition:opacity .4s var(--ease)}
+  .ex.on,body.plug #link{opacity:1}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--ink-dim)" stroke-width="1.6"/></marker>
+    <marker id="ahg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--gold)" stroke-width="1.6"/></marker>
+  </defs>
+  <g class="step">
+    <rect class="box" x="60" y="140" width="170" height="150" rx="6"/>
+    <text class="lbl" x="145" y="226" text-anchor="middle">You</text>
+  </g>
+  <g class="step" data-cue="app">
+    <path class="arrow draw" pathLength="1" d="M240 215 H360" marker-end="url(#ah)"/>
+    <rect class="box" x="370" y="140" width="260" height="150" rx="6"/>
+    <text class="lbl label" data-cue="claude" x="500" y="210" text-anchor="middle">Claude</text>
+    <text class="sub label" data-cue="app" x="500" y="248" text-anchor="middle">the app</text>
+    <text class="sub" x="500" y="330" text-anchor="middle">your laptop</text>
+  </g>
+  <g class="step" data-cue="model">
+    <path class="arrow" id="plain" d="M640 215 H880"/>
+    <rect class="box" x="890" y="140" width="250" height="150" rx="6"/>
+    <text class="lbl label" data-cue="model" x="1015" y="226" text-anchor="middle">the model</text>
+    <text class="sub" x="1015" y="330" text-anchor="middle">Anthropic's servers</text>
+  </g>
+  <g class="step" data-cue="calendar" id="cal">
+    <rect class="box" x="370" y="500" width="260" height="130" rx="6"/>
+    <text class="lbl label" data-cue="calendar" id="calname" x="500" y="576" text-anchor="middle">Calendar</text>
+  </g>
+  <g id="link">
+    <path class="arrow" d="M470 350 V490" marker-end="url(#ah)"/>
+    <path class="arrow" d="M530 490 V350" marker-end="url(#ah)"/>
+    <text class="lbl label" data-cue="mcp" x="565" y="432">MCP</text>
+  </g>
+  <!-- set plug: one exchange -->
+  <g class="ex" id="call">
+    <path class="arrow goldline" d="M880 190 H645" marker-end="url(#ahg)"/>
+    <text class="lbl hot label" data-cue="tool" id="callname" x="760" y="170" text-anchor="middle">tool call</text>
+  </g>
+  <g class="ex" id="down"><path class="arrow goldline" d="M470 350 V490" marker-end="url(#ahg)"/></g>
+  <g class="ex" id="back">
+    <path class="arrow" d="M645 245 H880" marker-end="url(#ah)"/>
+    <text class="lbl label" data-cue="result" x="760" y="285" text-anchor="middle">result</text>
+  </g>
+  <!-- set list: the server says what it offers -->
+  <g class="ex" id="ask"><text class="lbl hot" x="400" y="432" text-anchor="middle">list</text></g>
+  <g class="ex" id="tools">
+    <text class="tool" x="690" y="530">list events</text>
+    <text class="tool" x="690" y="575">create event</text>
+    <text class="tool" x="690" y="620">send invite</text>
+  </g>
+  <!-- set ask: the call stops at the app -->
+  <g class="ex" id="gate">
+    <path class="arrow goldline" stroke-dasharray="10 10" d="M380 300 V400 H145 V300" marker-end="url(#ahg)"/>
+    <text class="lbl hot" x="262" y="450" text-anchor="middle">allow?</text>
+  </g>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+let timers = [];
+const at = (t, f) => timers.push(setTimeout(f, t));
+const show = (...ids) => ids.forEach(id => $(id).classList.add('on'));
+function reset() {
+  timers.forEach(clearTimeout); timers = [];
+  document.body.classList.add('plug');
+  $('calname').textContent = 'calendar server';
+  $('callname').textContent = 'tool call';
+  $('callname').classList.add('hot');
+  document.querySelectorAll('.ex').forEach(el => el.classList.remove('on'));
+}
+const MOVES = {
+  plug() { at(300, () => show('call')); at(1300, () => show('down')); at(2500, () => show('back')); },
+  list() { at(300, () => show('down', 'ask')); at(1500, () => show('tools')); },
+  ask() {
+    show('tools');
+    at(300, () => { $('callname').textContent = 'send invite'; $('callname').classList.remove('hot'); show('call'); });
+    at(1500, () => show('gate'));
+  },
+};
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (!MOVES[m]) return;
+  reset();
+  MOVES[m]();
+});
+</script>

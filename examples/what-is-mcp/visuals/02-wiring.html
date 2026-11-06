@@ -1,0 +1,72 @@
+<!-- Three apps wired to three services, then one shared plug. For beat 3. Apps down the left: "Claude", "Cursor", "ChatGPT". Services down the right: "GitHub", "Calendar", "Slack". The apps are up at once; the services come up as you say "services"; then, as you say "connectors", nine thin grey lines draw in, one from every app to every service: each app building its own connector to each service. The brief scripts the line that names them: "Three apps. Three services. Nine connectors." Then ask the prediction. "set new": a fourth box, "new app", dashed, comes up under the apps, and three more grey lines draw from it, one to each service: three new connectors, so twelve in all. Make it in the turn after Leila answers, and say "three". "set mcp": every line fades, a tall gold bar "MCP" comes up in the middle, and each app and each service has one short line to the bar; the new app, if it is up, turns solid and has one line too. Make it in the turn after "set new", as you say that everyone now speaks one plug, and land that GitHub builds one server and builds nothing for the new app. The counts are a toy to show the shape, not a measurement, and the before picture is illustrative (the sources say so); the names are real products that support MCP. The board resets if shown again. In the close this visual isn't used. -->
+<style>
+  .box{fill:var(--panel);stroke:var(--ink);stroke-width:2;transition:stroke-dasharray .5s}
+  .lbl{fill:var(--ink);font-size:30px}
+  .wire{fill:none;stroke:var(--ink-dim);stroke-width:2}
+  .fade{transition:opacity .6s var(--ease)}
+  body.mcp .fade{opacity:0}
+  #new,#newold,#bar{opacity:0;transition:opacity .6s var(--ease)}
+  body.new #new,body.new #newold{opacity:1}
+  body.mcp #bar{opacity:1;transition-delay:.4s}
+  #newmcp{opacity:0;transition:opacity .6s var(--ease) .4s}
+  body.mcp.new #newmcp{opacity:1}
+  #new .box{stroke-dasharray:10 10}
+  body.mcp #new .box{stroke-dasharray:none}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <rect class="box" x="60" y="140" width="240" height="90" rx="6"/>
+    <text class="lbl" x="180" y="196" text-anchor="middle">Claude</text>
+    <rect class="box" x="60" y="290" width="240" height="90" rx="6"/>
+    <text class="lbl" x="180" y="346" text-anchor="middle">Cursor</text>
+    <rect class="box" x="60" y="440" width="240" height="90" rx="6"/>
+    <text class="lbl" x="180" y="496" text-anchor="middle">ChatGPT</text>
+  </g>
+  <g class="step" data-cue="service">
+    <rect class="box" x="900" y="140" width="240" height="90" rx="6"/>
+    <text class="lbl" x="1020" y="196" text-anchor="middle">GitHub</text>
+    <rect class="box" x="900" y="290" width="240" height="90" rx="6"/>
+    <text class="lbl" x="1020" y="346" text-anchor="middle">Calendar</text>
+    <rect class="box" x="900" y="440" width="240" height="90" rx="6"/>
+    <text class="lbl" x="1020" y="496" text-anchor="middle">Slack</text>
+  </g>
+  <g class="fade"><g class="step" data-cue="connector">
+    <path class="wire draw" pathLength="1" d="M310 185 L890 185"/>
+    <path class="wire draw" pathLength="1" d="M310 185 L890 335"/>
+    <path class="wire draw" pathLength="1" d="M310 185 L890 485"/>
+    <path class="wire draw" pathLength="1" d="M310 335 L890 185"/>
+    <path class="wire draw" pathLength="1" d="M310 335 L890 335"/>
+    <path class="wire draw" pathLength="1" d="M310 335 L890 485"/>
+    <path class="wire draw" pathLength="1" d="M310 485 L890 185"/>
+    <path class="wire draw" pathLength="1" d="M310 485 L890 335"/>
+    <path class="wire draw" pathLength="1" d="M310 485 L890 485"/>
+  </g></g>
+  <g id="new">
+    <rect class="box" x="60" y="590" width="240" height="90" rx="6"/>
+    <text class="lbl" x="180" y="646" text-anchor="middle">new app</text>
+  </g>
+  <g class="fade"><g id="newold">
+    <path class="wire draw" pathLength="1" d="M310 635 L890 185"/>
+    <path class="wire draw" pathLength="1" d="M310 635 L890 335"/>
+    <path class="wire draw" pathLength="1" d="M310 635 L890 485"/>
+  </g></g>
+  <g id="bar">
+    <rect x="570" y="140" width="60" height="390" rx="6" fill="color-mix(in srgb,var(--gold) 14%,transparent)" stroke="var(--gold)" stroke-width="3"/>
+    <text class="lbl" x="600" y="115" text-anchor="middle" fill="var(--gold)" style="fill:var(--gold)">MCP</text>
+    <path class="wire" d="M310 185 H570"/>
+    <path class="wire" d="M310 335 H570"/>
+    <path class="wire" d="M310 485 H570"/>
+    <path class="wire" d="M630 185 H890"/>
+    <path class="wire" d="M630 335 H890"/>
+    <path class="wire" d="M630 485 H890"/>
+  </g>
+  <g id="newmcp">
+    <path class="wire draw" pathLength="1" d="M310 635 H600 V535"/>
+  </g>
+</svg>
+<script>
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'new' || m === 'mcp') document.body.classList.add(m);
+});
+</script>

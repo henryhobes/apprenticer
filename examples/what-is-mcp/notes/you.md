@@ -1,0 +1,3 @@
+<!-- What Leila understands and how the sessions have gone: for each of the four ideas in the brief (no hands, one plug, asking what it can do, who decides), whether Leila has explained it back, with her own words and the date as evidence, marked solid, half or open; where the last session stopped; the questions she asked that weren't answered in full; how she likes to be taught and anything she said annoyed her. Under 250 words. Never drop an idea's line. -->
+
+No sessions yet. From the brief: Leila is a product designer who uses Claude and Cursor daily, keeps seeing "Add MCP server" in their settings, and writes a little HTML but no backend.
