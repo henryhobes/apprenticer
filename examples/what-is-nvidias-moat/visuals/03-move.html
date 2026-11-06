@@ -1,0 +1,46 @@
+<!-- Staying on Nvidia against moving to a cheaper rival chip, then when moving is worth it. For beats 4 and 5. A table with no borders: row names down the left in grey, "chip", "code", "people", and one faint rule under the column heads. The "stay" column is up at once: chip "pricier" in gold, code "runs", people "hired". The rival being cheaper is a premise for the question, not a real price: say so. Nothing else until Priya answers what moving costs beyond the price tag. "set move": the "move" column comes up: chip "cheaper", code "rewrite", people "retrain", and the gold moves from "pricier" to "rewrite". Make it in the turn after her answer and tell the house analogy: change the foundation and you re-check everything built on it. "set worth": under the table, apart from it, "saving > cost of moving" comes up with "saving" in gold and the gold leaves "rewrite"; it also brings up the move column if it isn't up. Make it in the turn after she answers what Google had to build besides its chip. Not on the board, from the sources: Google built its own compiler and framework for its TPUs (XLA and JAX, named only if she asks); Anthropic uses TPUs, Trainium and Nvidia GPUs; OpenAI signed with AMD for 6 gigawatts of GPUs, the first starting in the second half of 2026. -->
+<style>
+  .row{fill:var(--ink-dim);font-size:28px}
+  .head{fill:var(--ink);font-size:32px}
+  .cell{fill:var(--ink);font-size:32px;transition:fill .4s var(--ease)}
+  .rule{stroke:var(--faint);stroke-width:2}
+  .gold{fill:var(--gold)}
+  .calc{fill:var(--ink);font-size:44px}
+  .op{fill:var(--ink-dim);font-size:44px}
+  #move,#worth{opacity:0;transition:opacity .5s var(--ease)}
+  body.move #move,body.worth #move,body.worth #worth{opacity:1}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <text class="head" x="560" y="170" text-anchor="middle">stay</text>
+    <path class="rule" d="M120 200 H1080"/>
+    <text class="row" x="120" y="280">chip</text>
+    <text class="row" x="120" y="370">code</text>
+    <text class="row" x="120" y="460">people</text>
+    <text class="cell gold" id="pricier" x="560" y="280" text-anchor="middle">pricier</text>
+    <text class="cell" x="560" y="370" text-anchor="middle">runs</text>
+    <text class="cell" x="560" y="460" text-anchor="middle">hired</text>
+  </g>
+  <g id="move">
+    <text class="head" x="900" y="170" text-anchor="middle">move</text>
+    <text class="cell" x="900" y="280" text-anchor="middle">cheaper</text>
+    <text class="cell" id="rewrite" x="900" y="370" text-anchor="middle">rewrite</text>
+    <text class="cell" x="900" y="460" text-anchor="middle">retrain</text>
+  </g>
+  <g id="worth">
+    <text x="600" y="630" text-anchor="middle"><tspan class="calc gold">saving</tspan><tspan class="op" dx="24">&gt;</tspan><tspan class="calc" dx="24">cost of moving</tspan></text>
+  </g>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+function state(s) {
+  document.body.classList.toggle('move', s === 'move');
+  document.body.classList.toggle('worth', s === 'worth');
+  $('pricier').classList.remove('gold');
+  $('rewrite').classList.toggle('gold', s === 'move');
+}
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'move' || m === 'worth') state(m);
+});
+</script>
