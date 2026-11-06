@@ -1,0 +1,3 @@
+<!-- What Priya understands and how the sessions have gone: for each of the four ideas in the brief (the loop, a real turn, the context window, permissions), whether Priya has explained it back, with her own words and the date as evidence, marked solid, half or open; where the last session stopped; the questions she asked that weren't answered in full; how she likes to be taught and anything she said annoyed her. Under 250 words. Never drop an idea's line. -->
+
+No sessions yet. From the brief: Priya is a product manager whose engineers use Claude Code; she uses chat assistants daily and doesn't write code.
