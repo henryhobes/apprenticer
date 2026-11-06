@@ -1,0 +1,87 @@
+<!-- One transformer layer: attention, then each token alone, then the next layer. For beats 3 and 4 and the close. Along the bottom the five tokens, we fished from the bank, each with a thin grey line rising from it: its lane, its list of numbers on the way up. Those are up at once. Then, from the bottom up, as you say each word: "attention" (arcs between the lanes, each running from a token back to earlier ones, the one from bank to fished in gold: tokens trading information), then "alone" (a small box on every lane, "think alone" beside it: each token goes through the same small network on its own), then "next" (arrows up off the top of every lane, "next layer" beside it). Say all three in one run, in that order, before explaining any: "first attention, where every token looks back at the others; then each token thinks alone; then it all goes up to the next layer". "set stack": the one layer gives way to a tall stack of thin layers, and "96 layers" appears at the left in gold: GPT-3's count, from the sources (the 2017 original had 6). Make it in the turn after Sam guesses. "set next": an arrow curves from the top of bank's lane down to a new token, "for", added to the end of the line in gold: the next word, which goes back in and the whole stack runs again. "for" is a prop. "set layer" puts the single layer back, without the stack. In the close, make "set layer" and "set labels off" together: attention, think alone and next layer hide and come back as each is named. -->
+<style>
+  .lane{stroke:var(--faint);stroke-width:2}
+  .tok{fill:var(--ink);font-size:32px}
+  .lbl{fill:var(--ink);font-size:28px;transition:fill .4s var(--ease)}
+  .arc{fill:none;stroke:var(--ink-dim);stroke-width:2}
+  .arc.main{stroke:var(--gold);stroke-width:4;transition:stroke .5s var(--ease)}
+  .ff{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+  .up{stroke:var(--ink-dim);stroke-width:2;fill:none}
+  .slab{fill:var(--panel);stroke:var(--ink-dim);stroke-width:2;opacity:0;transition:opacity .4s var(--ease)}
+  .big{fill:var(--gold);font-size:72px;transition:fill .5s var(--ease)}
+  .unit{fill:var(--ink-dim);font-size:28px}
+  #one{transition:opacity .5s var(--ease)}
+  body.stack #one{opacity:0}
+  body.stack .slab{opacity:1}
+  #count,#next{opacity:0;transition:opacity .5s var(--ease)}
+  body.stack #count{opacity:1}
+  body.next #next{opacity:1}
+  body.next .big{fill:var(--ink)}
+  body.next .arc.main{stroke:var(--ink-dim)}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--ink-dim)" stroke-width="1.6"/></marker>
+    <marker id="ahg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--gold)" stroke-width="1.6"/></marker>
+  </defs>
+  <g class="step">
+    <path class="lane" d="M340 620 V240 M500 620 V240 M660 620 V240 M820 620 V240 M980 620 V240"/>
+    <text class="tok" x="340" y="670" text-anchor="middle">we</text>
+    <text class="tok" x="500" y="670" text-anchor="middle">fished</text>
+    <text class="tok" x="660" y="670" text-anchor="middle">from</text>
+    <text class="tok" x="820" y="670" text-anchor="middle">the</text>
+    <text class="tok" x="980" y="670" text-anchor="middle">bank</text>
+  </g>
+  <g id="one">
+    <g class="step" data-cue="attention">
+      <path class="arc" d="M500 560 Q420 490 340 560"/>
+      <path class="arc" d="M660 560 Q580 490 500 560"/>
+      <path class="arc" d="M820 560 Q660 470 500 560"/>
+      <path class="arc" d="M980 560 Q900 490 820 560"/>
+      <path class="arc main" d="M980 560 Q740 430 500 560"/>
+      <text class="lbl label" data-cue="attention|look|blend" x="60" y="530">attention</text>
+    </g>
+    <g class="step" data-cue="alone">
+      <rect class="ff" x="310" y="330" width="60" height="60" rx="6"/>
+      <rect class="ff" x="470" y="330" width="60" height="60" rx="6"/>
+      <rect class="ff" x="630" y="330" width="60" height="60" rx="6"/>
+      <rect class="ff" x="790" y="330" width="60" height="60" rx="6"/>
+      <rect class="ff" x="950" y="330" width="60" height="60" rx="6"/>
+      <text class="lbl label" data-cue="alone|think|own|feed" x="60" y="370">think alone</text>
+    </g>
+    <g class="step" data-cue="next">
+      <path class="up" d="M340 240 V180" marker-end="url(#ah)"/>
+      <path class="up" d="M500 240 V180" marker-end="url(#ah)"/>
+      <path class="up" d="M660 240 V180" marker-end="url(#ah)"/>
+      <path class="up" d="M820 240 V180" marker-end="url(#ah)"/>
+      <path class="up" d="M980 240 V180" marker-end="url(#ah)"/>
+      <text class="lbl label" data-cue="next|layer|stack" x="60" y="200">next layer</text>
+    </g>
+  </g>
+  <g id="stack"></g>
+  <g id="count">
+    <text x="60" y="430"><tspan class="big">96</tspan><tspan class="unit" dx="12">layers</tspan></text>
+  </g>
+  <g id="next">
+    <path class="arc" style="stroke:var(--gold);stroke-width:3" d="M980 170 Q1110 150 1110 610" marker-end="url(#ahg)"/>
+    <text class="tok" style="fill:var(--gold)" x="1110" y="670" text-anchor="middle">for</text>
+  </g>
+</svg>
+<script>
+const stack = document.getElementById('stack');
+for (let i = 0; i < 12; i++) {
+  const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  r.setAttribute('class', 'slab');
+  r.setAttribute('x', 300); r.setAttribute('width', 720);
+  r.setAttribute('y', 572 - i * 32); r.setAttribute('height', 18); r.setAttribute('rx', 6);
+  r.style.transitionDelay = `${i * 60}ms`;
+  stack.appendChild(r);
+}
+const body = document.body;
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'stack') body.classList.add('stack');
+  if (m === 'layer') body.classList.remove('stack', 'next');
+  if (m === 'next') body.classList.add('next');
+});
+</script>

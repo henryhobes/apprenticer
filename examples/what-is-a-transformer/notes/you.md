@@ -1,0 +1,3 @@
+<!-- What Sam understands and how the sessions have gone: for each of the four ideas in the brief (attention, everyone looks back, one layer and the stack, writing one token at a time), whether Sam has explained it back, with their own words and the date as evidence, marked solid, half or open; where the last session stopped; the questions Sam asked that weren't answered in full; how Sam likes to be taught and anything they said annoyed them. Under 250 words. Never drop an idea's line. -->
+
+No sessions yet. From the brief: Sam is a policy advisor who writes about AI, has never written code, and hates equations and lectures.
