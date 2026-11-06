@@ -1,0 +1,59 @@
+<!-- The sentence "we fished from the bank" as five tokens, and who looks at whom. For the opening and beats 1 and 2. Five boxes in a line across the middle: we, fished, from, the, bank, with "bank" in gold, all up at once. Nothing else until Sam has answered the opening question. "set look": arcs rise from bank back to each earlier word, their thickness the share of attention it gives each: the arc to fished is thick and gold with "70%" at its top; the arc to from is a little thicker (15 percent), the arcs to we and the thin (5 each), all grey. "riverside" appears under bank, and bank turns back to white: what bank now carries. Make it in the turn after Sam's answer. "set borrowed": the word fished changes to borrowed, the arcs stay as they are, and the word under bank changes to "money". Make it in the turn after Sam answers which kind of bank it is now. "set everyone": every other token's arcs appear too, thin and faint, under the line, each running from a token back to the tokens before it, none forward: every token looks back at the same time. Any move brings up the arcs if they aren't up. The sentence, the 70 percent and the meanings are props from the sources, not read out of a real model. -->
+<style>
+  .box{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+  .tok{fill:var(--ink);font-size:36px;transition:fill .5s var(--ease),opacity .25s var(--ease)}
+  .hot{fill:var(--gold)}
+  .arc{fill:none;stroke:var(--ink-dim);stroke-width:2}
+  .arc.main{stroke:var(--gold);stroke-width:10}
+  .pct{fill:var(--gold);font-size:32px}
+  .mean{fill:var(--ink);font-size:32px;transition:opacity .25s var(--ease)}
+  #look,#mean,#all{opacity:0;transition:opacity .6s var(--ease)}
+  body.look #look,body.look #mean,body.all #all{opacity:1}
+  .out,body.look #mean.out{opacity:0}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <rect class="box" x="90" y="380" width="180" height="90" rx="6"/>
+    <text class="tok" x="180" y="437" text-anchor="middle">we</text>
+    <rect class="box" x="300" y="380" width="180" height="90" rx="6"/>
+    <text class="tok" id="w2" x="390" y="437" text-anchor="middle">fished</text>
+    <rect class="box" x="510" y="380" width="180" height="90" rx="6"/>
+    <text class="tok" x="600" y="437" text-anchor="middle">from</text>
+    <rect class="box" x="720" y="380" width="180" height="90" rx="6"/>
+    <text class="tok" x="810" y="437" text-anchor="middle">the</text>
+    <rect class="box" x="930" y="380" width="180" height="90" rx="6"/>
+    <text class="tok hot" id="bank" x="1020" y="437" text-anchor="middle">bank</text>
+  </g>
+  <g id="look">
+    <path class="arc" d="M1020 370 Q600 -40 180 370"/>
+    <path class="arc" d="M1020 370 Q915 260 810 370"/>
+    <path class="arc" style="stroke-width:4" d="M1020 370 Q810 140 600 370"/>
+    <path class="arc main" d="M1020 370 Q705 30 390 370"/>
+    <text class="pct" x="705" y="252" text-anchor="middle">70%</text>
+  </g>
+  <text class="mean" id="mean" x="1020" y="530" text-anchor="middle">riverside</text>
+  <g id="all" style="--ink-dim:var(--faint)">
+    <path class="arc" d="M390 480 Q285 560 180 480"/>
+    <path class="arc" d="M600 480 Q495 560 390 480"/>
+    <path class="arc" d="M600 480 Q390 620 180 480"/>
+    <path class="arc" d="M810 480 Q705 560 600 480"/>
+    <path class="arc" d="M810 480 Q600 620 390 480"/>
+    <path class="arc" d="M810 480 Q495 680 180 480"/>
+  </g>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+const body = document.body;
+function swap(el, text) {
+  if (el.textContent === text) return;
+  el.classList.add('out');
+  setTimeout(() => { el.textContent = text; el.classList.remove('out'); }, 250);
+}
+function look() { body.classList.add('look'); $('bank').classList.remove('hot'); }
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'look') look();
+  if (m === 'borrowed') { look(); swap($('w2'), 'borrowed'); swap($('mean'), 'money'); }
+  if (m === 'everyone') { look(); body.classList.add('all'); }
+});
+</script>
