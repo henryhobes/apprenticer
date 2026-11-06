@@ -1,0 +1,36 @@
+<!-- Who takes each turn, in a chatbot and in an agent. For the opening and beat 1. Two columns of turns, time running down, no arrows and no words but the turns. Left, under "chatbot" in grey: You, model, You, model, striped: every other turn is Marcus. Only the left column is up at first. "set who" brings up the right column, under "agent" in grey: You once at the top, then model, model, model, and "done" at the foot: one message from Marcus, then the model takes every turn after it. At the same time every "You" turn, on both sides, turns gold: the person who starts each turn. Make it in the turn after he answers the opening question, and say "agent" in that turn: after his first message, the agent's model takes the next turn itself, again and again, until it says done. Don't explain how the model acts here: that's 02-trail. -->
+<style>
+  .head{fill:var(--ink-dim);font-size:28px}
+  .turn{fill:var(--panel);stroke:var(--ink-dim);stroke-width:2}
+  .you{fill:color-mix(in srgb,var(--ink) 12%,transparent);stroke:var(--ink);transition:stroke .5s var(--ease),fill .5s var(--ease)}
+  .lbl{fill:var(--ink);font-size:30px;transition:fill .5s var(--ease)}
+  .dim{fill:var(--ink-dim)}
+  #agent{opacity:0;transform:translateY(8px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+  body.who #agent{opacity:1;transform:none}
+  body.who .you{stroke:var(--gold);fill:color-mix(in srgb,var(--gold) 12%,transparent)}
+  body.who .youl{fill:var(--gold)}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <text class="head" x="330" y="120" text-anchor="middle">chatbot</text>
+    <rect class="turn you" x="200" y="160" width="260" height="80" rx="6"/><text class="lbl youl" x="330" y="211" text-anchor="middle">You</text>
+    <rect class="turn" x="200" y="270" width="260" height="80" rx="6"/><text class="lbl" x="330" y="321" text-anchor="middle">model</text>
+    <rect class="turn you" x="200" y="380" width="260" height="80" rx="6"/><text class="lbl youl" x="330" y="431" text-anchor="middle">You</text>
+    <rect class="turn" x="200" y="490" width="260" height="80" rx="6"/><text class="lbl" x="330" y="541" text-anchor="middle">model</text>
+    <path d="M600 100 V640" stroke="var(--faint)" stroke-width="2"/>
+  </g>
+  <g id="agent">
+    <text class="head" x="870" y="120" text-anchor="middle">agent</text>
+    <rect class="turn you" x="740" y="160" width="260" height="80" rx="6"/><text class="lbl youl" x="870" y="211" text-anchor="middle">You</text>
+    <rect class="turn" x="740" y="270" width="260" height="80" rx="6"/><text class="lbl" x="870" y="321" text-anchor="middle">model</text>
+    <rect class="turn" x="740" y="380" width="260" height="80" rx="6"/><text class="lbl" x="870" y="431" text-anchor="middle">model</text>
+    <rect class="turn" x="740" y="490" width="260" height="80" rx="6"/><text class="lbl" x="870" y="541" text-anchor="middle">model</text>
+    <text class="lbl dim" x="870" y="636" text-anchor="middle">done</text>
+  </g>
+</svg>
+<script>
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'who') document.body.classList.add('who');
+});
+</script>

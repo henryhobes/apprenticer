@@ -1,0 +1,36 @@
+<!-- The chance of getting every step right, falling as the steps add up. For beat 3. A chart, no line on it yet: steps along the bottom from 0 to 100, the chance that every step so far was right up the side, "100%" at the top and "0%" at the foot, and in grey at the top right "99% right per step": the modelling assumption from the sources. All of that is up at once. Ask the prediction with the chart empty. "set run": a line draws itself from 100% before the first step, falling as it goes, and a gold "37%" lands at its end, at step 100: all hundred steps right only about a third of the time. Make it in the turn after Marcus answers, and say that a 1% slip rate is small per step and large over a hundred. "set careful": a second, flatter line in grey draws to "90%" at step 100, "at 99.9%" in grey under it: the same task at 99.9% right per step. Make it as you say that the fix is fewer slips per step and checks that catch them. Both numbers are arithmetic on an assumption, not measurements: 0.99 to the 100th is 0.366, 0.999 to the 100th is 0.905. Not on the board, from the sources: METR's March 2025 finding, nearly 100% success on tasks that take a person under 4 minutes, under 10% on tasks over about 4 hours. -->
+<style>
+  .axis{fill:none;stroke:var(--faint);stroke-width:2}
+  .tick{fill:var(--ink-dim);font-size:24px}
+  .curve{fill:none;stroke-width:3;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.6s var(--ease)}
+  #c99{stroke:var(--ink)} #c999{stroke:var(--ink-dim)}
+  body.run #c99,body.careful #c999{stroke-dashoffset:0}
+  .end{opacity:0;transition:opacity .5s var(--ease) 1.4s}
+  body.run #e99,body.careful #e999{opacity:1}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <path class="axis" d="M150 100 V620 H990"/>
+    <text class="tick" x="130" y="128" text-anchor="end">100%</text>
+    <text class="tick" x="130" y="628" text-anchor="end">0%</text>
+    <text class="tick" x="150" y="664" text-anchor="middle">0</text>
+    <text class="tick" x="990" y="664" text-anchor="middle">100</text>
+    <text class="tick" x="570" y="700" text-anchor="middle">steps</text>
+    <text class="tick" x="990" y="80" text-anchor="end">99% right per step</text>
+  </g>
+  <path class="curve" id="c999" pathLength="1"/>
+  <path class="curve" id="c99" pathLength="1"/>
+  <text class="end" id="e99" x="1004" y="460" font-size="64" fill="var(--gold)">37%</text>
+  <g class="end" id="e999"><text x="1004" y="180" font-size="48" fill="var(--ink-dim)">90%</text><text class="tick" x="1004" y="214">at 99.9%</text></g>
+</svg>
+<script>
+// y = 620 - 500 * p^n: the chance that all n steps so far were right
+const curve = p => 'M' + Array.from({ length: 101 }, (_, n) => `${150 + n * 8.4} ${(620 - 500 * p ** n).toFixed(1)}`).join(' L');
+document.getElementById('c99').setAttribute('d', curve(0.99));
+document.getElementById('c999').setAttribute('d', curve(0.999));
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'run' || m === 'careful') document.body.classList.add('run');
+  if (m === 'careful') document.body.classList.add('careful');
+});
+</script>

@@ -1,0 +1,3 @@
+<!-- What Marcus understands and how the sessions have gone: for each of the four ideas in the brief (who takes the turn, the trail of tool calls the harness runs, why long tasks fail, agent or workflow), whether Marcus has explained it back, with his own words and the date as evidence, marked solid, half or open; where the last session stopped; the questions he asked that weren't answered in full; how he likes to be taught and anything he said annoyed him. Under 250 words. Never drop an idea's line. -->
+
+No sessions yet. From the brief: Marcus is an operations manager who uses ChatGPT daily; vendors keep pitching him agents, and he wants the mechanism, not the pitch.
