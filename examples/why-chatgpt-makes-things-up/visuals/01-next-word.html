@@ -1,0 +1,74 @@
+<!-- The next word, picked from a row of guesses. For the opening, beats 1 and 2 and the close. At the top, the start of a sentence: "The capital of France is". Below it, as you say "guess", a row of six bars, one per candidate next word, with the word under each: "Paris" very tall and gold with "picked" over it, then "a", "the", "home", "located" tiny, and last a tiny bar "I don't know" in grey. "next word" in grey under the row. So the opening line says "sentence", then "guess", in that order. "set unknown": the sentence becomes "Adam Kalai was born in" and the bars reshape: five years (1968, 1971, 1974, 1977, 1980), all short and nearly equal, nothing gold, and "I don't know" still tiny. Make it in the turn after Maya answers the opening question. "set pick": the 1977 bar turns gold, "picked" moves over it, and the sentence finishes "1977." in plain ink: fluent and sure. "set again": the same question asked three times: the pick moves from 1977 to 1971 to 1968, about two seconds apart, and the three answers line up in a row under the sentence. Make it in the turn after Maya predicts same or different. All the bar heights and all five years are props drawn for the shape, not read from a real model, and none is Kalai's real birth year: the real anecdote (sources) is three different wrong birthdays from a chatbot. Any move brings up the Kalai sentence if it isn't up, and a move made again plays again. In the close, make "set again" and "set labels off" together: "next word", "I don't know" and "picked" hide and come back as Maya names each. -->
+<style>
+  .sent{position:absolute;left:100px;top:80px;font-size:52px;color:var(--ink);transition:opacity .25s var(--ease)}
+  .sent.out{opacity:0}
+  #answers{position:absolute;left:100px;top:165px;font-size:32px;color:var(--ink-dim);word-spacing:28px}
+  .slot{position:absolute;bottom:200px;width:130px}
+  .bar{position:absolute;bottom:0;left:15px;width:100px;border:2px solid var(--ink);border-bottom:none;border-radius:6px 6px 0 0;
+       background:color-mix(in srgb,var(--ink) 12%,transparent);transition:height .6s var(--ease),background .4s var(--ease),border-color .4s var(--ease)}
+  .bar.hot{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 30%,transparent)}
+  .dim .bar{border-color:var(--ink-dim);border-style:dashed}
+  .word{position:absolute;top:566px;width:130px;text-align:center;font-size:28px;color:var(--ink)}
+  .dim.word{color:var(--ink-dim);font-size:24px}
+  #axis{position:absolute;left:100px;top:550px;width:1000px;border-top:2px solid var(--faint)}
+  #axislbl{position:absolute;left:0;width:1200px;top:630px;text-align:center;font-size:26px;color:var(--ink-dim)}
+  #picked{position:absolute;top:0;width:130px;text-align:center;font-size:26px;color:var(--ink);opacity:0;transition:opacity .4s var(--ease),left .4s var(--ease),top .6s var(--ease)}
+  #picked.show{opacity:1}
+</style>
+<div class="step"><div class="sent" id="sent">The capital of France is</div><div id="answers"></div></div>
+<div class="step" data-cue="guess">
+  <div id="axis"></div>
+  <div id="bars"></div>
+  <div class="label" id="axislbl" data-cue="next word|word">next word</div>
+  <div class="label" id="picked" data-cue="pick">picked</div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const X = [100, 265, 430, 595, 760, 950]; // slot lefts; the last is "I don't know"
+const MAX = 300; // px for a probability of 1
+const FRANCE = [['Paris', .88], ['a', .04], ['the', .03], ['home', .02], ['located', .02], ["I don't know", .01]];
+const KALAI = [['1968', .15], ['1971', .17], ['1974', .16], ['1977', .18], ['1980', .14], ["I don't know", .02]];
+const bars = $('bars');
+const slots = FRANCE.map(([w, p], i) => {
+  const s = document.createElement('div'); s.className = 'slot'; s.style.left = X[i] + 'px';
+  const b = document.createElement('div'); b.className = 'bar';
+  s.append(b);
+  const t = document.createElement('div'); t.className = 'word'; t.style.left = X[i] + 'px';
+  if (i === 5) { s.classList.add('dim'); t.className = 'word dim label'; t.dataset.cue = "know|don't know"; t.style.width = '190px'; t.style.left = (X[i] - 30) + 'px'; }
+  bars.append(s, t);
+  return { s, b, t };
+});
+function paint(set, hot) {
+  set.forEach(([w, p], i) => {
+    slots[i].b.style.height = Math.max(6, p * MAX) + 'px';
+    slots[i].t.textContent = w;
+    slots[i].b.classList.toggle('hot', i === hot);
+  });
+  const pk = $('picked');
+  if (hot >= 0) { pk.style.left = X[hot] + 'px'; pk.style.top = (550 - set[hot][1] * MAX - 44) + 'px'; pk.classList.add('show'); }
+  else pk.classList.remove('show');
+}
+function sentence(text) {
+  const s = $('sent'); s.classList.add('out');
+  setTimeout(() => { s.textContent = text; s.classList.remove('out'); }, 250);
+}
+paint(FRANCE, 0);
+let timers = [];
+function stop() { timers.forEach(clearTimeout); timers = []; }
+function unknown() { stop(); $('answers').textContent = ''; sentence('Adam Kalai was born in'); paint(KALAI, -1); }
+const BASE = 'Adam Kalai was born in';
+function pick(i) { paint(KALAI, i); sentence(BASE + ' ' + KALAI[i][0] + '.'); }
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'unknown') unknown();
+  if (m === 'pick') { unknown(); timers.push(setTimeout(() => pick(3), 700)); }
+  if (m === 'again') {
+    unknown();
+    const seq = [3, 1, 0];
+    seq.forEach((i, n) => timers.push(setTimeout(() => {
+      pick(i);
+      $('answers').textContent = seq.slice(0, n + 1).map(j => KALAI[j][0]).join(' ');
+    }, 700 + n * 2000)));
+  }
+});
+</script>

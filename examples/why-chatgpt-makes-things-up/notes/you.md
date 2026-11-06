@@ -1,0 +1,3 @@
+<!-- What Maya understands and how the sessions have gone: for each of the four ideas in the brief (one word at a time, ask it again, why it hasn't been trained away, what one answer costs), whether Maya has explained it back, with her own words and the date as evidence, marked solid, half or open; where the last session stopped; the questions she asked that weren't answered in full; how she likes to be taught and anything she said annoyed her. Under 250 words. Never drop an idea's line. -->
+
+No sessions yet. From the brief: Maya is a marketing lead who uses ChatGPT daily; it once gave her a statistic for a client deck that didn't exist. She doesn't know what a token or an API is.
