@@ -1,0 +1,51 @@
+<!-- NVIDIA's chips, CoreWeave in the middle, and the AI labs that rent from it. For the opening and the close. Three boxes left to right: "NVIDIA" with "GPUs" in grey under it; "CoreWeave" with "data centers + power" in grey under it; and "AI labs". NVIDIA is up at once; AI labs comes up as you say "labs" and CoreWeave as you say "CoreWeave", so the opening line names NVIDIA's chips, then the labs, then CoreWeave. A grey arrow runs from NVIDIA to CoreWeave (it buys the chips). Nothing between CoreWeave and the labs until Maya has answered the opening question. "set rent": an arrow from CoreWeave to the labs with "GPU-hours" on it, dashes running along it, and under CoreWeave the calculation "49.24 ÷ 8 = 6.16", with "$ an hour, 8 H100s" in grey under the 49.24 and "per GPU-hour" in grey under the 6.16, the 6.16 in gold: CoreWeave's on-demand list price for a machine with eight H100s, about six dollars per GPU per hour. Make it in the turn after her answer and say "GPU-hours". In the close, make "set rent" and "set labels off" together: NVIDIA, CoreWeave, AI labs, GPU-hours and the two grey units under the calculation hide and come back as each is named (the labs also come back on "customers" or "companies", GPU-hours on "hour" or "rent"). -->
+<style>
+  .box{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+  .lbl{fill:var(--ink);font-size:32px}
+  .sub{fill:var(--ink-dim);font-size:24px}
+  .arrow{fill:none;stroke:var(--ink-dim);stroke-width:2}
+  .big{fill:var(--ink);font-size:64px}
+  .op{fill:var(--ink-dim);font-size:48px}
+  #rent{opacity:0;transition:opacity .5s var(--ease)}
+  body.rent #rent{opacity:1}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="var(--ink-dim)" stroke-width="1.6"/></marker>
+  </defs>
+  <g class="step">
+    <rect class="box" x="60" y="190" width="260" height="150" rx="6"/>
+    <text class="lbl label" data-cue="nvidia" x="190" y="262" text-anchor="middle">NVIDIA</text>
+    <text class="sub" x="190" y="300" text-anchor="middle">GPUs</text>
+  </g>
+  <g class="step" data-cue="lab">
+    <rect class="box" x="880" y="190" width="260" height="150" rx="6"/>
+    <text class="lbl label" data-cue="lab|customer|compan|openai|microsoft" x="1010" y="276" text-anchor="middle">AI labs</text>
+  </g>
+  <g class="step" data-cue="coreweave">
+    <path class="arrow draw" pathLength="1" d="M330 265 H390" marker-end="url(#ah)"/>
+    <rect class="box" x="400" y="190" width="280" height="150" rx="6"/>
+    <text class="lbl label" data-cue="coreweave" x="540" y="262" text-anchor="middle">CoreWeave</text>
+    <text class="sub" x="540" y="300" text-anchor="middle">data centers + power</text>
+  </g>
+  <g id="rent">
+    <path class="arrow flow" d="M690 265 H870" marker-end="url(#ah)"/>
+    <text class="lbl label" data-cue="hour|rent" x="780" y="248" text-anchor="middle">GPU-hours</text>
+    <text class="big" x="420" y="520" text-anchor="middle">49.24</text>
+    <text class="sub label" data-cue="hour|rent" x="420" y="566" text-anchor="middle">$ an hour, 8 H100s</text>
+    <text class="op" x="565" y="516" text-anchor="middle">÷</text>
+    <text class="big" x="640" y="520" text-anchor="middle">8</text>
+    <text class="op" x="715" y="516" text-anchor="middle">=</text>
+    <text class="big" x="830" y="520" text-anchor="middle" style="fill:var(--gold)">6.16</text>
+    <text class="sub label" data-cue="hour|rent" x="830" y="566" text-anchor="middle">per GPU-hour</text>
+  </g>
+</svg>
+<script>
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m !== 'rent' || document.body.classList.contains('rent')) return;
+  document.body.classList.add('rent');
+  const p = document.querySelector('#rent .flow'); // restart the dashes now it's visible
+  p.classList.remove('flow'); void p.getBoundingClientRect(); p.classList.add('flow');
+});
+</script>

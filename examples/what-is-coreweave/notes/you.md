@@ -1,0 +1,3 @@
+<!-- What Maya understands and how the sessions have gone: for each of the five ideas in the brief (what CoreWeave sells, idle hours and utilization, take-or-pay, when the contract ends, why Microsoft rents), whether Maya has explained it back, with her own words and the date as evidence, marked solid, half or open; where the last session stopped; the questions she asked that weren't answered in full; how she likes to be taught and anything she said annoyed her. Under 250 words. Never drop an idea's line. -->
+
+No sessions yet. From the brief: Maya is a product manager who reads the business news; she knows a GPU is a chip AI runs on and a cloud is renting someone else's computers, and keeps finding only stock pages when she looks CoreWeave up.

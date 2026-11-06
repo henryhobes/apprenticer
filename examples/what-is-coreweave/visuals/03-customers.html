@@ -1,0 +1,43 @@
+<!-- CoreWeave's 2025 revenue split by customer, then its power running against signed. For beat 5. A bar across the top, "2025 revenue" in grey above it, split into two parts: "Microsoft" with "67%" in gold, about two thirds of the bar, and "everyone else" with "33%" in grey. All up at once: say Microsoft was about two thirds of CoreWeave's revenue last year, then ask why Microsoft would rent from someone else. "set power": under it, "power" in grey above two bars on the same scale: "running" with "1.5 GW", solid, and "signed" with "3.7 GW", dashed and longer, the 3.7 in gold (the gold leaves the 67%): CoreWeave's active power at 30 June 2026 against the total it has contracted, not yet built. Make it in the turn after Maya answers, and `term gigawatt` in that turn. Not on the board, from the sources: Microsoft was 62% in 2024; no other customer was 10% or more of 2025 revenue; OpenAI and Meta have signed large multi-year contracts (If they ask only). -->
+<style>
+  .lbl{fill:var(--ink);font-size:30px}
+  .sub{fill:var(--ink-dim);font-size:24px}
+  .big{fill:var(--ink);font-size:56px;transition:fill .4s var(--ease)}
+  .dimbig{fill:var(--ink-dim);font-size:56px}
+  .gold{fill:var(--gold)}
+  .part{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+  .rest{fill:var(--panel);stroke:var(--ink-dim);stroke-width:2}
+  .run{fill:color-mix(in srgb,var(--power) 14%,transparent);stroke:var(--power);stroke-width:2}
+  .sign{fill:none;stroke:var(--power);stroke-width:2;stroke-dasharray:10 10}
+  #power{opacity:0;transition:opacity .5s var(--ease)}
+  body.power #power{opacity:1}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <text class="sub" x="100" y="110">2025 revenue</text>
+    <rect class="part" x="100" y="130" width="670" height="110" rx="6"/>
+    <rect class="rest" x="780" y="130" width="320" height="110" rx="6"/>
+    <text class="lbl" x="130" y="198">Microsoft</text>
+    <text class="big gold" id="ms" x="740" y="206" text-anchor="end">67%</text>
+    <text class="sub" x="810" y="170">everyone else</text>
+    <text class="dimbig" x="1080" y="226" text-anchor="end">33%</text>
+  </g>
+  <g id="power">
+    <text class="sub" x="100" y="400">power</text>
+    <rect class="run" x="100" y="420" width="405" height="90" rx="6"/>
+    <text class="lbl" x="130" y="478">running</text>
+    <text class="big" x="530" y="486">1.5<tspan class="sub" dx="10">GW</tspan></text>
+    <rect class="sign" x="100" y="550" width="1000" height="90" rx="6"/>
+    <text class="lbl" x="130" y="608">signed</text>
+    <text class="big gold" id="sg" x="1080" y="616" text-anchor="end">3.7<tspan class="sub" dx="10">GW</tspan></text>
+  </g>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m !== 'power') return;
+  document.body.classList.add('power');
+  $('ms').classList.remove('gold');
+});
+</script>
