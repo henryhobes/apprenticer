@@ -1,0 +1,42 @@
+<!-- Words as points on a meaning map. For the opening and beat 1. A toy map flattened to two dimensions, with no axes and no axis names. Up at once: a point for "dog", top left, and under it its fingerprint "0.21, 0.83" in gold, with "real: 1,536 numbers" in grey beneath. "puppy" and "cat" come up close to dog as you say "puppy"; "car" and "truck" come up together far off, bottom right, as you say "car". So the opening line names dog and its fingerprint, then puppy, then car, in that order. Nothing else changes until Nadia has answered the opening question. "set kitten": a point for "kitten" drops in between cat and puppy, the gold moving from the fingerprint to kitten. Make it in the turn after her answer, and say the model put it there because kitten means something close to cat and puppy; on this toy, spelling plays no part. The map and the two numbers are props from the sources, not a real model's output; a real embedding has 1,536 numbers (OpenAI's text-embedding-3-small), and no single number means anything on its own. Never name what the directions on the map mean. -->
+<style>
+  .pt{fill:var(--ink);transition:fill .5s var(--ease)}
+  .lbl{fill:var(--ink);font-size:32px;transition:fill .5s var(--ease)}
+  .sub{fill:var(--ink-dim);font-size:24px}
+  .num{fill:var(--ink);font-size:30px;transition:fill .5s var(--ease)}
+  .hot{fill:var(--gold)}
+  #kit{opacity:0;transform:translateY(-40px);transition:opacity .5s var(--ease),transform .6s var(--ease)}
+  body.kitten #kit{opacity:1;transform:none}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <circle class="pt" cx="300" cy="230" r="11"/>
+    <text class="lbl label" data-cue="dog" x="326" y="241">dog</text>
+    <text class="num hot label" id="fp" data-cue="fingerprint|number" x="300" y="300" text-anchor="middle">0.21, 0.83</text>
+    <text class="sub" x="300" y="336" text-anchor="middle">real: 1,536 numbers</text>
+  </g>
+  <g class="step" data-cue="pupp">
+    <circle class="pt" cx="470" cy="190" r="11"/>
+    <text class="lbl label" data-cue="pupp" x="496" y="201">puppy</text>
+    <circle class="pt" cx="500" cy="380" r="11"/>
+    <text class="lbl label" data-cue="cat" x="526" y="391">cat</text>
+  </g>
+  <g class="step" data-cue="car">
+    <circle class="pt" cx="880" cy="560" r="11"/>
+    <text class="lbl label" data-cue="car" x="854" y="571" text-anchor="end">car</text>
+    <circle class="pt" cx="1010" cy="480" r="11"/>
+    <text class="lbl label" data-cue="truck" x="1010" y="440" text-anchor="middle">truck</text>
+  </g>
+  <g id="kit">
+    <circle class="pt hot" cx="520" cy="290" r="13"/>
+    <text class="lbl hot label" data-cue="kitten" x="548" y="301">kitten</text>
+  </g>
+</svg>
+<script>
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m !== 'kitten') return;
+  document.body.classList.add('kitten');
+  document.getElementById('fp').classList.remove('hot');
+});
+</script>

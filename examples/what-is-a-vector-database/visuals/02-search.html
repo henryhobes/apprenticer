@@ -1,0 +1,44 @@
+<!-- Keyword search against nearest neighbour, on the meaning map. For beats 2 and 3. The same kind of toy map as 01-map, now holding three help articles as points, up at once: "Update card" top middle, "Reset password" far off top right, "Refund duplicate" lower left. The customer's question "card charged twice" lands as a gold point near the lower left as you say "charged", so in the turn that shows it, name the three articles first, then the question ("a customer writes: my card was charged twice"). Then ask the keyword prediction and stop. "set keyword": a dashed ring goes round "Update card", with "shares card" in grey under it: keyword search picks it, the only article with a word in common. Make it in the turn after her answer. "set nearest": two lines run from the question, a solid gold one to "Refund duplicate", the nearest point, and a dashed grey one to "Update card", which is further off; the gold moves from the question to "Refund duplicate". Make it right after "set keyword", in the same turn or the next, and say the refund article shares no words with the question but means the same thing, so the model put them close. "Update card" sits at a middling distance on purpose: it is about cards, so a real model would not put it far away. The positions are props from the sources, not a real model's output; no distances are shown as numbers. -->
+<style>
+  .pt{fill:var(--ink);transition:fill .5s var(--ease)}
+  .lbl{fill:var(--ink);font-size:30px;transition:fill .5s var(--ease)}
+  .sub{fill:var(--ink-dim);font-size:24px}
+  .hot{fill:var(--gold)}
+  .link{fill:none;stroke-width:2}
+  #kw,#near{opacity:0;transition:opacity .5s var(--ease)}
+  body.keyword #kw,body.nearest #near{opacity:1}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g id="near">
+    <path class="link" d="M380 460 L420 560" stroke="var(--gold)" stroke-width="3"/>
+    <path class="link" d="M380 460 L600 230" stroke="var(--ink-dim)" stroke-dasharray="8 10"/>
+  </g>
+  <g class="step">
+    <circle class="pt" cx="600" cy="230" r="11"/>
+    <text class="lbl label" data-cue="update|card" x="600" y="180" text-anchor="middle">Update card</text>
+    <circle class="pt" cx="1000" cy="150" r="11"/>
+    <text class="lbl label" data-cue="reset|password" x="980" y="210" text-anchor="middle">Reset password</text>
+    <circle class="pt" id="ref" cx="420" cy="560" r="11"/>
+    <text class="lbl label" id="refl" data-cue="refund|duplicate" x="446" y="610">Refund duplicate</text>
+  </g>
+  <g class="step" data-cue="charged">
+    <circle class="pt hot" id="q" cx="380" cy="460" r="13"/>
+    <text class="lbl hot label" id="ql" data-cue="question|charged" x="356" y="430" text-anchor="end">card charged twice</text>
+  </g>
+  <g id="kw">
+    <circle cx="600" cy="230" r="40" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="8 8"/>
+    <text class="sub" x="660" y="306" text-anchor="middle">shares card</text>
+  </g>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'keyword') document.body.classList.add('keyword');
+  if (m === 'nearest') {
+    document.body.classList.add('nearest');
+    for (const id of ['q', 'ql']) $(id).classList.remove('hot');
+    for (const id of ['ref', 'refl']) $(id).classList.add('hot');
+  }
+});
+</script>
