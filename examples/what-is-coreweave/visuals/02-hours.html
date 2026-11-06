@@ -1,0 +1,51 @@
+<!-- One GPU's year as a bar of hours, rented or idle. For beats 2, 3 and 4. A long bar across the board, "one GPU, one year" in grey above it, filled green and labelled "rented": every hour of the year rented. Under it, "$54,000" in gold with "a year at list price, modelled" in grey: 8,760 hours times the $6.16 list price, an upper bound for teaching, not a figure CoreWeave reports; say it's modelled. It is all up at once. "set idle": the right half of the bar empties to a dashed grey outline labelled "idle", with "$0" under it, and the gold moves from the money to "idle"; the left half stays "rented" and the money under it drops to "$27,000", with "half the hours, modelled" in grey. A grey line comes up under the idle half: "still wearing out: 6 years". Make it in the turn after Maya answers the idle-hour question. "set contract": the idle half stays grey but its label becomes "paid, idle" and its "$0" goes; under the bar, apart from it, "98%" comes up in gold with "of revenue, committed" in grey: over 98% of CoreWeave's 2025 revenue was take-or-pay contracts. Make it in the turn after she answers who carries the idle risk. Each move works from any state. -->
+<style>
+  .lbl{fill:var(--ink);font-size:30px;transition:fill .4s var(--ease)}
+  .sub{fill:var(--ink-dim);font-size:24px}
+  .big{fill:var(--ink);font-size:64px;transition:fill .4s var(--ease)}
+  .gold{fill:var(--gold)}
+  #rented{fill:color-mix(in srgb,var(--money) 14%,transparent);stroke:var(--money);stroke-width:2;transition:width .6s var(--ease)}
+  #idle{fill:none;stroke:var(--ink-dim);stroke-width:2;stroke-dasharray:10 10}
+  .later{opacity:0;transition:opacity .5s var(--ease)}
+  body.idle .on-idle,body.contract .on-contract{opacity:1}
+  body.contract .off-contract{opacity:0}
+</style>
+<svg viewBox="0 0 1200 750" width="1200" height="750" stroke-linecap="round" stroke-linejoin="round">
+  <g class="step">
+    <text class="sub" x="100" y="250">one GPU, one year</text>
+    <rect id="idle" class="later on-idle" x="600" y="280" width="500" height="120" rx="6"/>
+    <rect id="rented" x="100" y="280" width="1000" height="120" rx="6"/>
+    <text class="lbl" id="rl" x="600" y="350" text-anchor="middle">rented</text>
+    <text class="big gold" id="money" x="600" y="500" text-anchor="middle">$54,000</text>
+    <text class="sub" id="mu" x="600" y="540" text-anchor="middle">a year at list price, modelled</text>
+    <g class="later on-idle">
+      <text class="lbl gold" id="il" x="850" y="350" text-anchor="middle">idle</text>
+      <text class="big off-contract" id="zero" x="850" y="500" text-anchor="middle">$0</text>
+      <text class="sub" x="850" y="540" text-anchor="middle">still wearing out: 6 years</text>
+    </g>
+    <g class="later on-contract">
+      <text class="big gold" x="600" y="640" text-anchor="middle">98%</text>
+      <text class="sub" x="600" y="680" text-anchor="middle">of revenue, committed</text>
+    </g>
+  </g>
+</svg>
+<script>
+const $ = id => document.getElementById(id);
+const body = document.body;
+function state(idle, contract) {
+  body.classList.toggle('idle', idle);
+  body.classList.toggle('contract', contract);
+  $('rented').style.width = (idle ? 500 : 1000) + 'px';
+  for (const id of ['rl', 'money', 'mu']) $(id).setAttribute('x', idle ? 350 : 600);
+  $('mu').textContent = idle ? 'half the hours, modelled' : 'a year at list price, modelled';
+  $('money').textContent = idle ? '$27,000' : '$54,000';
+  $('money').classList.toggle('gold', !idle);
+  $('il').textContent = contract ? 'paid, idle' : 'idle';
+  $('il').classList.toggle('gold', idle && !contract);
+}
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'idle') state(true, false);
+  if (m === 'contract') state(true, true);
+});
+</script>
