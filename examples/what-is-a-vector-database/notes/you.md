@@ -1,0 +1,3 @@
+<!-- What Nadia understands and how the sessions have gone: for each of the five beats in the brief (the map, keyword or meaning, scale, RAG, keeping it current), whether Nadia has explained it back, with her own words and the date as evidence, marked solid, half or open; where the last session stopped; the questions she asked that weren't answered in full; how she likes to be taught and anything she said annoyed her. Under 250 words. Never drop a beat's line. -->
+
+No sessions yet. From the brief: Nadia runs support operations at a company building a help-desk chatbot over its help articles; she uses chat assistants daily and doesn't write code.
