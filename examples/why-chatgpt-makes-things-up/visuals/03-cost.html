@@ -1,0 +1,38 @@
+<!-- What one long answer costs, in tokens and cents. For beat 4. A calculation, line by line, at gpt-6.1-sol's API list price (sources, checked November 2026). Up at once: "1,000 tokens out × $10 per million", the answer it writes (about 750 words, a page). As you say "input": "2,000 tokens in × $2 per million" in grey under it, the question and the conversation before it (the 2,000 is a modelling assumption: say so if asked). No results yet: ask the prediction (a cent, a dime or a dollar). "set total": "= 1.4¢" appears under the lines, in gold, counting up from 0: one cent for the writing, under half a cent for the reading. "set plus": the calculation dims and a line appears under it: "$20 Plus ÷ 1.4¢ ≈ 1,400 answers", the 1,400 now in gold: what a month of Plus would buy at API prices. Say as you make it that this is a price, what OpenAI charges developers, not what an answer costs OpenAI, which isn't public. "set plus" brings up the total too. -->
+<style>
+  .line{position:absolute;left:120px;font-size:60px;color:var(--ink);transition:opacity .6s var(--ease)}
+  .unit{font-size:26px;color:var(--ink-dim)}
+  .op{color:var(--ink-dim);margin:0 18px}
+  .dimline{color:var(--ink-dim);font-size:48px}
+  #total{position:absolute;left:120px;top:370px;font-size:72px;color:var(--gold);opacity:0;transition:opacity .5s var(--ease),color .4s var(--ease)}
+  #total.in{opacity:1}
+  #plus{position:absolute;left:120px;top:540px;font-size:56px;color:var(--ink);opacity:0;transform:translateY(8px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+  #plus.in{opacity:1;transform:none}
+  body.plus .calc{opacity:.35}
+  body.plus #total{color:var(--ink)}
+  #n1400{color:var(--gold)}
+</style>
+<div class="step calc"><div class="line" style="top:110px">1,000<span class="unit"> tokens out</span><span class="op">×</span>$10<span class="unit"> per million</span></div></div>
+<div class="step calc" data-cue="input"><div class="line dimline" style="top:230px">2,000<span class="unit"> tokens in</span><span class="op">×</span>$2<span class="unit"> per million</span></div></div>
+<div id="total" class="calc"><span class="op" style="margin-left:0">=</span><span id="t">0.0</span><span class="unit">¢</span></div>
+<div id="plus">$20<span class="unit"> Plus</span><span class="op">÷</span>1.4<span class="unit">¢</span><span class="op">≈</span><span id="n1400">1,400</span><span class="unit"> answers</span></div>
+<script>
+const $ = id => document.getElementById(id);
+let shown = false;
+function total() {
+  if (shown) return; shown = true;
+  $('total').classList.add('in');
+  const t0 = performance.now();
+  const tick = now => {
+    const k = Math.min(1, (now - t0) / 900);
+    $('t').textContent = (1.4 * (1 - Math.pow(1 - k, 3))).toFixed(1);
+    if (k < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'total') total();
+  if (m === 'plus') { total(); document.body.classList.add('plus'); $('plus').classList.add('in'); }
+});
+</script>
