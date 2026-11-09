@@ -1,0 +1,48 @@
+<!-- A six-word sentence cut into ten tokens, each with its number. For the opening, beat 1 and the close. At the top, the sentence as plain text: "My grandmother bakes unbelievably good sourdough." Below it, the big number 6 with "words" beside it. Nothing else until Leah has answered how many tokens. "set chop": the sentence comes apart into ten boxes in a row, the real split from GPT-4o's tokenizer: My, ·grandmother, ·b, akes, ·unbelievably, ·good, ·sour, d, ough, and the full stop. A small grey dot is the space before a word, which belongs to its token. "·unbelievably" is outlined in gold: the long word that is one token. Beside the 6, "10 tokens" comes up. Make it in the turn after her answer. "set ids": under each box its real id: 5444, 57468, 287, 6861, 180692, 1899, 22918, 67, 1870, 13, with "numbers" under them; the gold moves from "·unbelievably" onto the ids. Make it in its own turn, after the chop has landed. In the close, make "set chop", "set ids" and "set labels off" together: "words", "tokens" and "numbers" hide and come back as each is named (words also on "sentence", tokens also on "piece", numbers also on "id"). -->
+<style>
+  .sent{position:absolute;left:60px;right:60px;top:110px;text-align:center;font-size:44px;transition:opacity .5s var(--ease)}
+  body.chop .sent{opacity:.35}
+  .row{position:absolute;left:60px;right:60px;top:250px;display:flex;justify-content:center;gap:8px;opacity:0;transform:translateY(8px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+  body.chop .row{opacity:1;transform:none}
+  .tok{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .box{border:2px solid var(--ink);background:var(--panel);border-radius:6px;padding:14px 10px;font-size:30px;white-space:pre;transition:border-color .5s var(--ease)}
+  .gold-box{border-color:var(--gold);border-width:3px}
+  body.ids .gold-box{border-color:var(--ink);border-width:2px}
+  .sp{color:var(--ink-dim)}
+  .id{font-size:22px;color:var(--ink-dim);opacity:0;transition:opacity .5s var(--ease),color .5s var(--ease)}
+  body.ids .id{opacity:1;color:var(--gold)}
+  .rowname{position:absolute;left:0;right:0;text-align:center;top:392px;font-size:24px;color:var(--ink-dim);opacity:0;transition:opacity .5s var(--ease)}
+  body.ids .rowname{opacity:1}
+  .nums{position:absolute;left:60px;right:60px;top:500px;display:flex;justify-content:center;gap:140px;align-items:baseline}
+  .big{font-size:72px}
+  .unit{font-size:28px;color:var(--ink-dim);margin-left:12px}
+  #tokens{opacity:0;transition:opacity .6s var(--ease)}
+  body.chop #tokens{opacity:1}
+</style>
+<div class="step">
+  <div class="sent">My grandmother bakes unbelievably good sourdough.</div>
+  <div class="row">
+    <div class="tok"><div class="box">My</div><div class="id">5444</div></div>
+    <div class="tok"><div class="box"><span class="sp">·</span>grandmother</div><div class="id">57468</div></div>
+    <div class="tok"><div class="box"><span class="sp">·</span>b</div><div class="id">287</div></div>
+    <div class="tok"><div class="box">akes</div><div class="id">6861</div></div>
+    <div class="tok"><div class="box gold-box"><span class="sp">·</span>unbelievably</div><div class="id">180692</div></div>
+    <div class="tok"><div class="box"><span class="sp">·</span>good</div><div class="id">1899</div></div>
+    <div class="tok"><div class="box"><span class="sp">·</span>sour</div><div class="id">22918</div></div>
+    <div class="tok"><div class="box">d</div><div class="id">67</div></div>
+    <div class="tok"><div class="box">ough</div><div class="id">1870</div></div>
+    <div class="tok"><div class="box">.</div><div class="id">13</div></div>
+  </div>
+  <div class="rowname label" data-cue="number|id">numbers</div>
+  <div class="nums">
+    <div><span class="big">6</span><span class="unit label" data-cue="word|sentence">words</span></div>
+    <div id="tokens"><span class="big">10</span><span class="unit label" data-cue="token|piece">tokens</span></div>
+  </div>
+</div>
+<script>
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'chop') document.body.classList.add('chop');
+  if (m === 'ids') document.body.classList.add('chop', 'ids');
+});
+</script>

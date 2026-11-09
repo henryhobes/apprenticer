@@ -1,7 +1,7 @@
 import { STEPS, tmpSpace } from './setup.ts';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
@@ -35,11 +35,19 @@ test('init makes a starting space, keeps what is already there, and ends up pass
   assert.match(first.stdout, /Interview the user first[\s\S]*5\. What do you hate/);
 });
 
-test('skill installs the guide as a skill, front-matter and all, and stays quiet about other folders when told one', () => {
-  const dir = join(tmpSpace({}), 'skills', 'apprenticer');
-  const result = run('skill', dir);
+const CATALOG = ['author-a-teaching-space', 'design-boards', 'run-sim-and-fix', 'write-a-teaching-brief'];
+const source = (rel: string) => readFileSync(new URL(`../skill/${rel}`, import.meta.url), 'utf8');
+
+test('skill installs the builder in the folder given and each catalog skill beside it, front-matter and all, and stays quiet about other folders', () => {
+  const skills = join(tmpSpace({}), 'skills'), result = run('skill', join(skills, 'apprenticer'));
   assert.equal(result.status, 0);
-  assert.equal(readFileSync(join(dir, 'SKILL.md'), 'utf8'), readFileSync(new URL('../skill/SKILL.md', import.meta.url), 'utf8'));
+  assert.equal(readFileSync(join(skills, 'apprenticer', 'SKILL.md'), 'utf8'), source('SKILL.md'));
+  assert.deepEqual(readdirSync(skills).sort(), ['apprenticer', ...CATALOG].sort());
+  for (const name of CATALOG) {
+    assert.equal(readFileSync(join(skills, name, 'SKILL.md'), 'utf8'), source(`${name}/SKILL.md`));
+    assert.match(source(`${name}/SKILL.md`), new RegExp(`^---\\nname: ${name}\\ndescription: .+\\n---\\n`));
+  }
+  assert.equal(result.stdout.match(/^installed /gm)?.length, 1 + CATALOG.length);
   assert.doesNotMatch(result.stdout, /keeps its skills elsewhere/);
 });
 
@@ -47,9 +55,9 @@ test('skill with no folder installs to Claude Code and says where another agent 
   const home = tmpSpace({});
   const result = spawnSync(process.execPath, [bin, 'skill'], { encoding: 'utf8', env: { ...process.env, OPENAI_API_KEY: '', HOME: home, USERPROFILE: home } });
   assert.equal(result.status, 0);
-  const target = join(home, '.claude', 'skills', 'apprenticer', 'SKILL.md');
-  assert.ok(existsSync(target), target);
-  assert.equal(readFileSync(target, 'utf8'), readFileSync(new URL('../skill/SKILL.md', import.meta.url), 'utf8'));
+  const skills = join(home, '.claude', 'skills');
+  assert.equal(readFileSync(join(skills, 'apprenticer', 'SKILL.md'), 'utf8'), source('SKILL.md'));
+  for (const name of CATALOG) assert.equal(readFileSync(join(skills, name, 'SKILL.md'), 'utf8'), source(`${name}/SKILL.md`));
   assert.match(result.stdout, /installed .*\.claude/);
   assert.ok(result.stdout.includes(HINT), result.stdout);
 });
