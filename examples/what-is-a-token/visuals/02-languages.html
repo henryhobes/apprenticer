@@ -1,0 +1,48 @@
+<!-- The same question in English, Hindi and Amharic, and how many tokens each takes. For beat 2. A table with no borders: language names down the left in grey, the question itself in the middle, the token count at the right under the column head "GPT-4o", one faint rule under the heads. Up at once: English, "Where is the train station?", 6, the 6 in gold; Hindi, "रेलवे स्टेशन कहाँ है?", 6. The Amharic row's question "የባቡር ጣቢያው የት ነው?" is up too, but its count is a grey question mark. Nothing changes until Leah has guessed. "set amharic": the question mark becomes 28 and the gold moves onto it, with "× 4.7" beside it in grey. Make it in the turn after her answer. "set older": a second count column comes up at the right, headed "GPT-4", in grey: 6, 20, 37; the Hindi 20 turns gold, and the gold leaves the 28. Make it after the Amharic point has landed, as explanation, with no question. All counts are measured with the real tokenizers (GPT-4o's o200k_base, GPT-4's cl100k_base), for this one question, not an average over the language. -->
+<style>
+  .t{position:absolute;font-size:32px;white-space:nowrap}
+  .lang{left:60px;color:var(--ink-dim);font-size:28px}
+  .q{left:260px}
+  .head{font-size:28px;color:var(--ink-dim)}
+  .n{text-align:right;width:120px;font-size:44px}
+  .c1{left:760px}
+  .c2{left:960px}
+  .rule{position:absolute;left:60px;right:60px;top:210px;border-top:2px solid var(--faint)}
+  .old{color:var(--ink-dim);opacity:0;transition:opacity .6s var(--ease),color .5s var(--ease)}
+  body.older .old{opacity:1}
+  #hi-old{transition:color .5s var(--ease)}
+  body.older #hi-old{color:var(--gold)}
+  #en{color:var(--gold);transition:color .5s var(--ease)}
+  body.amharic #en{color:var(--ink)}
+  #am{transition:color .5s var(--ease)}
+  body.amharic #am{color:var(--gold)}
+  body.older #am{color:var(--ink)}
+  #x{position:absolute;left:890px;top:482px;font-size:28px;color:var(--ink-dim);opacity:0;transition:opacity .5s var(--ease)}
+  body.amharic:not(.older) #x{opacity:1}
+</style>
+<div class="step">
+  <div class="t head c1 n" style="top:150px">GPT-4o</div>
+  <div class="t head c2 n old" style="top:150px">GPT-4</div>
+  <div class="rule"></div>
+  <div class="t lang" style="top:262px">English</div>
+  <div class="t q" style="top:262px">Where is the train station?</div>
+  <div class="t n c1" id="en" style="top:252px">6</div>
+  <div class="t n c2 old" style="top:252px">6</div>
+  <div class="t lang" style="top:372px">Hindi</div>
+  <div class="t q" style="top:372px">रेलवे स्टेशन कहाँ है?</div>
+  <div class="t n c1" style="top:362px">6</div>
+  <div class="t n c2 old" id="hi-old" style="top:362px">20</div>
+  <div class="t lang" style="top:482px">Amharic</div>
+  <div class="t q" style="top:482px">የባቡር ጣቢያው የት ነው?</div>
+  <div class="t n c1" id="am" style="top:472px;color:var(--ink-dim)">?</div>
+  <div class="t n c2 old" style="top:472px">37</div>
+</div>
+<div id="x">× 4.7</div>
+<script>
+const am = document.getElementById('am');
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'amharic' || m === 'older') { am.textContent = '28'; am.style.color = ''; document.body.classList.add('amharic'); }
+  if (m === 'older') document.body.classList.add('older');
+});
+</script>

@@ -1,0 +1,35 @@
+<!-- The window and the bill, both counted in tokens. For beat 3. Two big numbers side by side. On the left, "1.05M" with "tokens" beside it in grey and "window" under it: how much a current GPT-6 model can read at once, from OpenAI's model list; the 1.05M is in gold. On the right, "$2" with "per million tokens" beside it in grey and "price" under it: gpt-6.1-sol's list price for input, November 2026. Nothing changes until Leah has guessed how many English words fit. "set words": under the window, "≈ 790,000 words" comes up and the gold moves onto it: 1.05 million times three quarters, the rule of thumb. Make it in the turn after her answer. "set amharic": under both numbers, "Amharic: × 4.7", the × 4.7 in gold and the gold leaves the words: for the question on 02-languages, Amharic fills the window and the bill about 4.7 times as fast as English, measured with GPT-4o's tokenizer for one question. Make it in the turn after "set words" has landed. It also brings up the words if they aren't up. Not on the board, from the sources: output is $10 per million tokens. -->
+<style>
+  .col{position:absolute;top:170px;width:480px;text-align:center}
+  .big{font-size:72px}
+  .unit{font-size:28px;color:var(--ink-dim);margin-left:12px}
+  .name{font-size:28px;color:var(--ink-dim);margin-top:8px}
+  .sub{font-size:44px;margin-top:56px;opacity:0;transition:opacity .6s var(--ease),color .5s var(--ease)}
+  #win{color:var(--gold);transition:color .5s var(--ease)}
+  body.words #win{color:var(--ink)}
+  body.words #wordsline{opacity:1;color:var(--gold)}
+  body.amharic #wordsline{color:var(--ink)}
+  #am{position:absolute;left:60px;right:60px;top:560px;text-align:center;font-size:44px;opacity:0;transition:opacity .6s var(--ease)}
+  body.amharic #am{opacity:1}
+  #am .lang{color:var(--ink-dim);font-size:32px;margin-right:16px}
+  #am .x{color:var(--gold)}
+</style>
+<div class="step">
+  <div class="col" style="left:90px">
+    <div><span class="big" id="win">1.05M</span><span class="unit">tokens</span></div>
+    <div class="name">window</div>
+    <div class="sub" id="wordsline">≈ 790,000 words</div>
+  </div>
+  <div class="col" style="left:630px">
+    <div><span class="big">$2</span><span class="unit">per million tokens</span></div>
+    <div class="name">price</div>
+  </div>
+</div>
+<div id="am"><span class="lang">Amharic:</span><span class="x">× 4.7</span></div>
+<script>
+addEventListener('message', e => {
+  const m = String(e.data?.set ?? '').trim().toLowerCase();
+  if (m === 'words') document.body.classList.add('words');
+  if (m === 'amharic') document.body.classList.add('words', 'amharic');
+});
+</script>

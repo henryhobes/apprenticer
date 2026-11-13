@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { serve } from '@hono/node-server';
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -13,7 +13,7 @@ import { DEFAULT_MEMORY, openSpace, readMeta, readSpace, sessionDirs } from '../
 
 const USAGE = `apprenticer <dir>                    serve the space in <dir> on localhost and open it
 apprenticer init <dir>               start a new space
-apprenticer skill [dir]              install the skill that builds spaces, for your coding agent (default ~/.claude/skills/apprenticer)
+apprenticer skill [dir]              install the skills that build spaces, for your coding agent (default ~/.claude/skills/apprenticer; the catalog skills go beside it)
 apprenticer check <dir>              check a space's files (no key, no model)
 apprenticer preview <dir>            serve and open only the visuals preview (no key)
 apprenticer notes <dir> [session]    save the notes for a session whose notes pass failed
@@ -64,12 +64,19 @@ Then write the brief and read it back to them in three to five lines. Write no v
 
 When it's built: apprenticer ${path}`;
 
-/** Puts the skill where a coding agent finds it (Claude Code's folder unless told otherwise), so it starts with the interview wherever the user asks for a space. The folder stays optional rather than defaulted in the signature, so the hint below can tell whether one was given. */
+/**
+ * Puts the skills where a coding agent finds them (Claude Code's folder unless told otherwise), so the builder starts with the interview wherever the user asks for a space.
+ * `dir` is the builder's own folder; each catalog skill under skill/<name>/ goes beside it, in <dir>/../<name>/. It stays optional rather than defaulted in the signature, so the hint below can tell whether one was given.
+ */
 function installSkill(dir?: string) {
-  const target = join(resolve(dir ?? join(homedir(), '.claude', 'skills', 'apprenticer')), 'SKILL.md');
-  mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(target, GUIDE());
-  console.log(`installed ${target}\nIn your coding agent, say what you want to rehearse or learn out loud ("I want to rehearse my interview on Thursday"), or call the skill by name (/apprenticer).${dir ? '' : '\nFor an agent that keeps its skills elsewhere: apprenticer skill <its skills folder>/apprenticer'}`);
+  const home = resolve(dir ?? join(homedir(), '.claude', 'skills', 'apprenticer'));
+  const skills = readdirSync(packageFile('skill'), { withFileTypes: true }).filter(d => d.isDirectory() && existsSync(packageFile(`skill/${d.name}/SKILL.md`))).map(d => d.name).sort();
+  for (const [from, to] of [['skill/SKILL.md', home], ...skills.map(name => [`skill/${name}/SKILL.md`, join(dirname(home), name)])]) {
+    mkdirSync(to, { recursive: true });
+    writeFileSync(join(to, 'SKILL.md'), readFileSync(packageFile(from), 'utf8'));
+    console.log(`installed ${join(to, 'SKILL.md')}`);
+  }
+  console.log(`In your coding agent, say what you want to rehearse or learn out loud ("I want to rehearse my interview on Thursday"), or call the skill by name (/apprenticer). To write a lesson for the catalog in examples/: /author-a-teaching-space.${dir ? '' : '\nFor an agent that keeps its skills elsewhere: apprenticer skill <its skills folder>/apprenticer'}`);
 }
 
 function check(path: string) {

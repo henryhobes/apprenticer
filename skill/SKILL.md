@@ -1,9 +1,11 @@
 ---
 name: apprenticer
-description: Rehearse or learn something out loud. Builds an Apprenticer space, a voice session with a board that `npx apprenticer` serves in the browser. Use when the user wants to prepare for an interview, design review, meeting, pitch or negotiation; to learn or be taught a topic; to practise a language; or to think a decision through. Also use when they mention Apprenticer or a space, or come back after a session to improve one. If they haven't asked for a voice session, offer one first.
+description: Builds an Apprenticer space for the person you're talking to, a voice session with a board that `npx apprenticer` serves in the browser, starting from their own answers. Use when the user wants to rehearse or learn something out loud: prepare for an interview, design review, meeting, pitch or negotiation; be taught a topic; practise a language; think a decision through. Also use when they mention Apprenticer or a space, or come back after a session to improve one. If they haven't asked for a voice session, offer one first. Not for writing a catalog lesson for other learners (a new space under the Apprenticer repo's examples/): use author-a-teaching-space.
 ---
 
 # Building an Apprenticer space
+
+This builds a space for the person in this chat, from their own answers. If they want a lesson written for other people (a catalog space), use the author-a-teaching-space skill instead; if it isn't clear which, ask once: "Is this for you to use, or a lesson for others?"
 
 ## Start here
 

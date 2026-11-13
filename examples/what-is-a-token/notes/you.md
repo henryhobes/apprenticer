@@ -1,0 +1,3 @@
+<!-- What Leah understands and how the sessions have gone: for each of the three ideas in the brief (the chop, tokens as numbers and why common chunks get one token; the same question in other languages; the window and the bill counted in tokens), whether Leah has explained it back, with her own words and the date as evidence, marked solid, half or open; where the last session stopped; the questions she asked that weren't answered in full; how she likes to be taught and anything she said annoyed her. Under 250 words. Never drop an idea's line. -->
+
+No sessions yet. From the brief: Leah is a product manager whose team's support assistant runs on an AI API; the invoice is "per million tokens", she has seen "maximum context length exceeded", and she doesn't write code.
