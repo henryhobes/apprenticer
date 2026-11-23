@@ -17,7 +17,7 @@ export const config = {
   // Other names this computer is reached by, to use it from another device through a proxy such as `tailscale serve` (see the README).
   allowHosts: (env.ALLOW_HOST ?? '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean),
   dailyCapUsd: Number(env.DAILY_CAP_USD ?? 20), // a 25-minute session on the Ultrafast tier is about $2 to $3
-  liveModel: env.LIVE_MODEL ?? 'gpt-live-1',
+  liveModel: env.LIVE_MODEL ?? 'gpt-live-1.1',
   voice: env.VOICE ?? 'vesper', // British English, masculine (GPT-Live voice list)
   mindModel: env.MIND_MODEL ?? 'gpt-6.1-sol',
   // The mind's answers during a session: Ultrafast costs 6x Standard but writes a whole answer in
@@ -25,7 +25,7 @@ export const config = {
   mindTier: (env.MIND_TIER ?? 'ultrafast') as 'ultrafast' | 'fast' | 'default',
 };
 
-// developers.openai.com/api/docs/models/gpt-live-1, Oct 2026.
+// developers.openai.com/api/docs/models/gpt-live-1.1, Nov 2026 (the same as gpt-live-1).
 export const LIVE_USD_PER_MINUTE = 0.05;
 export const WEB_SEARCH_USD = 0.01;
 
