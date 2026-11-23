@@ -61,7 +61,7 @@ A leading HTML comment in any file is a note to the mind. `skill/SKILL.md` is th
 | | default | |
 |---|---|---|
 | `MIND_MODEL` | `gpt-6.1-sol` | writes every turn, the notes, the drawings |
-| `LIVE_MODEL` | `gpt-live-1` | the voice |
+| `LIVE_MODEL` | `gpt-live-1.1` | the voice |
 | `VOICE` | `vesper` | a GPT-Live voice |
 | `MIND_TIER` | `ultrafast` | the mind's answers: about 2 s each instead of 5, at 6x the price; `default` switches it off |
 | `MIND_PRICE` | `2,0.1,10` | what the mind costs, USD per million input, cached input and output tokens at the default tier (GPT-6.1 Sol's; set it if you change `MIND_MODEL`). Fast counts 2x, Ultrafast 6x; a web search $0.01 |

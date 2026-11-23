@@ -62,7 +62,7 @@ test('a session is created over WebRTC with the voice settings, one at a time un
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), { sdp: 'answer', session_id: 'live_1' });
   assert.equal(created[0].transport.sdp, 'offer');
-  assert.equal(created[0].session.model, 'gpt-live-1');
+  assert.equal(created[0].session.model, 'gpt-live-1.1');
   assert.equal(created[0].session.delegation.type, 'client');
   assert.match(created[0].session.instructions, /Don't speak first/);
   assert.deepEqual(ran, ['live_1']);
